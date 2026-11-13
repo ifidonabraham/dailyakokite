@@ -17,6 +17,21 @@ This repository is **Version 1 — the initial design initiative**. It is a star
 
 ---
 
+## Design direction
+
+The editorial design is based on the visual language of major news organisations — specifically **The Wall Street Journal**, **Bloomberg**, and **Semafor**. The goal was to borrow their discipline without copying their branding.
+
+What was taken from those references:
+
+- **A restrained masthead.** Wordmark at the top left, publication attribution and founding date at the top right, a thin rule underneath. No heavy bars, no dropdowns on the homepage.
+- **Small uppercase category labels.** Categories appear in small, uppercase, tracked-out text above headlines — never as large badges. This is the WSJ/Bloomberg convention and it keeps the page scannable.
+- **A category ribbon.** The homepage carries a horizontal strip of section names under the masthead, so readers can jump straight into a section.
+- **A strict typographic hierarchy.** Playfair Display for headlines, Merriweather for body, Inter for all UI, labels, and metadata. Three type families, no more.
+- **Consistent image framing.** Images sit in a bordered frame with a fixed aspect ratio, so the layout does not shift as different stories load.
+- **A reading column constraint.** Body text is capped at a comfortable reading width on every page.
+
+The palette is the publication's own: Beacon Blue (#0157FF) for links and category labels, Editorial Black (#121619) for text, with a warm off-white page background.
+
 ## What was done
 
 This is a migration of the existing Daily Akokite WordPress site to a modern, static-first Next.js application. The goal was to remove all dependency on the legacy WordPress server for rendering, while keeping the content pipeline connected to the same CMS.
