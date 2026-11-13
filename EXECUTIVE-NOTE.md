@@ -51,10 +51,6 @@ The palette is the publication's own: Beacon Blue (#0157FF) for links and catego
 - Newsletter / submissions flow for student contributors
 - Accessibility and performance hardening
 
-## A note on ownership
-
-This project is produced in collaboration with The Press Club, University of Lagos. It is not solely a personal project. The Press Club owns the editorial voice, the brand assets, and the content; the codebase is the delivery mechanism.
-
 ## Suggestions welcome
 
 As this is Version 1 of an initial design initiative, I am actively accepting suggestions — on layout, navigation, content strategy, or anything else you think should be different. Please reach out through The Press Club or open an issue on the repository.
