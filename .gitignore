@@ -4,5 +4,8 @@ out
 .env*.local
 *.log
 .DS_Store
-public/wp-content/uploads
 .vercel
+public/wp-content/uploads
+# Local development caches (not part of the public project)
+data/
+scripts/
