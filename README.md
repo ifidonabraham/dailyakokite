@@ -4,7 +4,7 @@
 
 Daily Akokite is the official student newspaper of the University of Lagos, produced by **The Press Club, UNILAG**. Established in 2003, the Press Club has trained generations of campus journalists. Daily Akokite carries that legacy forward as an independent, student-run editorial outlet committed to informing, challenging, and amplifying the voices of the Akoka community.
 
-This repository is **Version 1 — the initial design initiative**. It is a living project, and suggestions are welcome.
+This repository is **Version 1 — the initial design initiative**. It is a starting point, not a finished product. I will keep working to improve the design and the frontend, and I welcome suggestions from anyone who wants to help.
 
 > **Note:** This project is produced in collaboration with The Press Club, University of Lagos. It is not solely a personal project.
 
@@ -28,25 +28,28 @@ This is a migration of the existing Daily Akokite WordPress site to a modern, st
 - **Section fronts.** Homepage carries a category ribbon plus Top Stories, Latest, Features, and Opinion sections. The Newspaper page presents an editorial list with small category labels.
 - **Article pages.** Dynamic routes with story-type labels, bylines, dates, featured images, sanitized article bodies, and related stories.
 
+### How the platform works (for contributors)
+
+Nothing about the WordPress connection is hidden — contributors need to understand how the content pipeline works.
+
+- **Content contract** (`src/lib/data.ts`): A normalized `Story` type decouples the frontend from WordPress internals. WordPress raw posts are fetched and normalized into a stable contract, so the UI can be redesigned without touching the CMS layer.
+- **Raw WordPress client** (`src/lib/wordpress.ts`): The functions that talk directly to the WordPress REST API. This is the entry point for all content.
+- **HTML rewriting:** `rewriteContentHtml` strips the WordPress domain from article bodies, image URLs, and canonical URLs before they reach the browser. This is what removes the WordPress links.
+- **Sanitization:** Article bodies are sanitized before rendering (`ArticleBody.tsx`) — scripts, iframes, and inline event handlers are removed.
+- **Static generation:** Homepage, About, Contact, and Newspaper are statically generated with a 5-minute revalidation window. Article pages are server-rendered on demand.
+
 ---
 
 ## Tech stack
 
 | Area | Technology |
 | --- | --- |
-| Framework | Next.js 16 (App Router) |
+| Framework | Next.js (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS + PostCSS |
 | Fonts | Playfair Display (headlines), Merriweather (body), Inter (UI) |
 | CMS | WordPress REST API (`https://unilagnews.com/wp-json/wp/v2`) |
 | Hosting | Vercel (zero-config production deploys) |
-
-### Architecture notes
-
-- **Content contract** (`src/lib/data.ts`): A normalized `Story` type decouples the frontend from WordPress internals. WordPress raw posts are fetched and normalized into a stable contract, so the UI can be redesigned without touching the CMS layer.
-- **HTML rewriting:** `rewriteContentHtml` strips the WordPress domain from article bodies, image URLs, and canonical URLs before they reach the browser.
-- **Sanitization:** Article bodies are sanitized before rendering (`ArticleBody.tsx`) — scripts, iframes, and inline event handlers are removed.
-- **Static generation:** Homepage, About, Contact, and Newspaper are statically generated with a 5-minute revalidation window. Article pages are server-rendered on demand.
 
 ---
 
@@ -82,14 +85,6 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
-## Syncing content from WordPress
-
-The sync script is kept out of the public repository because it contains development-only tooling. To refresh the local content cache, run:
-
-```bash
-npm run sync
-```
-
 ---
 
 ## Deployment
@@ -100,6 +95,6 @@ This project is deployed automatically to Vercel. Pushing to `develop` triggers 
 
 ## Contributing
 
-This is Version 1 of the design initiative. We welcome suggestions, corrections, and story pitches. Please open an issue or reach out through The Press Club.
+This is Version 1 of an initial design initiative. I am actively working to improve the design and the frontend, and I welcome suggestions — on layout, navigation, content strategy, or anything else. Please open an issue or reach out through The Press Club.
 
 *The Press Club, University of Lagos — Est. 2003*
