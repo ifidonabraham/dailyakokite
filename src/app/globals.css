@@ -1,0 +1,304 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #0157FF;
+  --brand-ink: #121619;
+  --ink: #121619;
+  --muted: #b1b7c1;
+  --paper: #ffffff;
+  --surface: #f4f5f7;
+  --border: #e4e6ea;
+  --focus: #0157ff;
+  --link: #0157ff;
+  --rule: #121619;
+  --light: #f7f8fa;
+}
+
+/* Editorial section label: uppercase, muted, rule-prefixed */
+.section-label {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: "Merriweather", Georgia, serif;
+  font-weight: 400;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display / masthead / headlines */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.masthead,
+.display {
+  font-family: "Playfair Display", "Merriweather", Georgia, serif;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+/* UI / nav / metadata / byline */
+.nav,
+.label,
+.byline,
+.meta,
+.caption,
+p,
+li,
+a:not(.display a) {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+::selection {
+  background: var(--brand);
+  color: var(--paper);
+}
+
+/* Editorial rules */
+.rule {
+  height: 1px;
+  background: var(--muted);
+  border: none;
+}
+
+.rule-thick {
+  height: 3px;
+  background: var(--ink);
+  border: none;
+  width: 64px;
+}
+
+.section-label {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Section heading: rule + label + optional link, editorial rhythm */
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.section-heading .rule {
+  width: 48px;
+  height: 3px;
+  background: var(--ink);
+  border: none;
+  flex-shrink: 0;
+}
+.section-heading h2 {
+  font-family: "Playfair Display", "Merriweather", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.section-heading a {
+  margin-left: auto;
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+.section-heading a:hover {
+  color: var(--brand-ink);
+}
+
+/* Card image frame: bounded, consistent aspect ratio */
+.card-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.card-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.card-frame:hover img {
+  transform: scale(1.04);
+}
+
+/* Category / type tag */
+.cat-tag {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+/* Editorial micro-labels (small category/meta text like WSJ/Bloomberg) */
+.meta-label {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.meta-sub {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  color: var(--ink);
+  opacity: .65;
+}
+
+.site-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Reading column */
+.reading-column {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Article body typography */
+.prose {
+  font-family: "Merriweather", Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+.prose p {
+  margin-bottom: 1.25rem;
+}
+
+.prose h2,
+.prose h3 {
+  font-family: "Playfair Display", "Merriweather", Georgia, serif;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  line-height: 1.2;
+}
+
+.prose h2 {
+  font-size: 1.75rem;
+}
+
+.prose h3 {
+  font-size: 1.4rem;
+}
+
+.prose a {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--brand);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #4a4f57;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Pull quote */
+.pull-quote {
+  font-family: "Playfair Display", "Merriweather", Georgia, serif;
+  font-size: 1.6rem;
+  line-height: 1.3;
+  font-weight: 600;
+  padding: 1.5rem 0;
+  border-top: 3px solid var(--brand);
+  border-bottom: 3px solid var(--brand);
+  margin: 2rem 0;
+  color: var(--ink);
+}
+
+/* Image frame */
+.img-frame {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.75rem 1.5rem;
+  z-index: 100;
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
