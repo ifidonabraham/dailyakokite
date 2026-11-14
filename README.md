@@ -6,7 +6,7 @@ Daily Akokite is the official student newspaper of the University of Lagos, prod
 
 This repository is **Version 1 — the initial design initiative**. It is a starting point, not a finished product. I will keep working to improve the design and the frontend, and I welcome suggestions from anyone who wants to help.
 
-> **Note:** This project is produced in collaboration with The Press Club, University of Lagos. It is not solely a personal project.
+>
 
 ---
 
