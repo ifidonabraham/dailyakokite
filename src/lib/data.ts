@@ -1,4 +1,4 @@
-import type { WPPost, WPPage, Story, PageContent } from "@/types/wp";
+import type { WPPost, WPPage, Story, PageContent, WPAuthor, Author } from "@/types/wp";
 
 const WP_API_URL = "https://unilagnews.com/wp-json/wp/v2";
 
@@ -32,6 +32,16 @@ export async function getRawCategories(): Promise<
   { id: number; name: string; slug: string }[]
 > {
   return fetchWP("/categories?per_page=100");
+}
+
+export async function getAuthorsRaw(): Promise<WPAuthor[]> {
+  return fetchWP("/users?per_page=100");
+}
+
+export async function getAuthorBySlugRaw(
+  slug: string
+): Promise<WPAuthor[]> {
+  return fetchWP(`/users?slug=${encodeURIComponent(slug)}`);
 }
 
 // --- Normalized story contract (frontend content contract, CMS-agnostic) ---
@@ -87,6 +97,8 @@ export function normalizeStory(post: WPPost): Story {
     category: primary,
     categories: cats,
     author: post.author_info?.display_name || "Daily Akokite",
+    authorId: post.author_info?.id || 0,
+    authorSlug: authorSlugFromLink(post.author_info?.author_link || ""),
     publishedAt: post.date,
     updatedAt: post.modified,
     featuredImage: image ? rewriteImageUrl(image) : null,
@@ -161,6 +173,56 @@ export async function getAllCategories(): Promise<
   return getRawCategories();
 }
 
+// --- Authors ---
+
+export function normalizeAuthor(user: WPAuthor): Author {
+  return {
+    id: user.id,
+    name: user.name,
+    slug: user.slug,
+    bio: user.description || "",
+    avatar: user.avatar_urls?.["96"] || user.avatar_urls?.["48"] || null,
+    storyCount: 0,
+  };
+}
+
+export async function getAuthors(): Promise<Author[]> {
+  const users = await getAuthorsRaw();
+  return users.map(normalizeAuthor);
+}
+
+export async function getAuthorBySlug(slug: string): Promise<Author | null> {
+  const users = await getAuthorBySlugRaw(slug);
+  return users.length > 0 ? normalizeAuthor(users[0]) : null;
+}
+
+export async function getStoriesByAuthor(
+  authorSlug: string,
+  limit = 20
+): Promise<Story[]> {
+  const posts = await getRawPosts(100);
+  return posts
+    .filter(
+      (p) =>
+        (p.author_info?.author_link || "") === authorSlug ||
+        p.author_info?.slug === authorSlug
+    )
+    .slice(0, limit)
+    .map(normalizeStory);
+}
+
+export async function getAuthorStoryCounts(): Promise<
+  Record<string, number>
+> {
+  const posts = await getRawPosts(100);
+  const counts: Record<string, number> = {};
+  for (const p of posts) {
+    const slug = p.author_info?.author_link || "";
+    if (slug) counts[slug] = (counts[slug] || 0) + 1;
+  }
+  return counts;
+}
+
 // --- Helpers ---
 
 export function stripHtml(html: string): string {
@@ -198,4 +260,10 @@ export function toSlug(text: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function authorSlugFromLink(link: string): string {
+  if (!link) return "";
+  const parts = link.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "";
 }

@@ -17,3 +17,11 @@ export async function getPages() {
 export async function getCategories() {
   return fetchWP("/categories");
 }
+
+export async function getAuthors() {
+  return fetchWP("/users?per_page=100");
+}
+
+export async function getAuthorBySlug(slug: string) {
+  return fetchWP(`/users?slug=${encodeURIComponent(slug)}`);
+}

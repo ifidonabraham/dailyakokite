@@ -4,6 +4,7 @@ import Link from "next/link";
 const QUICK_LINKS = [
   { href: "/", label: "Home" },
   { href: "/newspaper", label: "Newspaper" },
+  { href: "/authors", label: "Authors" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

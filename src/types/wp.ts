@@ -18,7 +18,12 @@ export interface WPPost {
   featured_media: number;
   format: string;
   status: string;
-  author_info?: { display_name: string; author_link?: string };
+  author_info?: {
+  id: number;
+  display_name: string;
+  author_link?: string;
+  slug?: string;
+};
   category_info?: string;
   tag_info?: string;
   featured_image_urls?: {
@@ -52,6 +57,19 @@ export interface WPCategory {
   taxonomy: string;
 }
 
+export interface WPAuthor {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  link: string;
+  avatar_urls: {
+    "24"?: string;
+    "48"?: string;
+    "96"?: string;
+  };
+}
+
 export interface Story {
   id: number;
   slug: string;
@@ -62,6 +80,8 @@ export interface Story {
   category: string;
   categories: string[];
   author: string;
+  authorId: number;
+  authorSlug: string;
   publishedAt: string;
   updatedAt: string;
   featuredImage: string | null;
@@ -69,6 +89,15 @@ export interface Story {
   canonicalUrl: string;
   status: string;
   format: string;
+}
+
+export interface Author {
+  id: number;
+  name: string;
+  slug: string;
+  bio: string;
+  avatar: string | null;
+  storyCount: number;
 }
 
 export interface PageContent {
