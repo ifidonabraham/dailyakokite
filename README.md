@@ -41,6 +41,8 @@ This is a migration of the existing Daily Akokite WordPress site to a modern, st
 - **Editorial design system.** A custom layout built on Tailwind CSS with a defined color palette (Beacon Blue, Editorial Black), a reading column constraint, and a consistent masthead, navigation, and footer.
 - **Branded identity.** The official Daily Akokite wordmark and The Press Club, University of Lagos logo are embedded in the masthead and footer.
 - **Section fronts.** Homepage carries a category ribbon plus Top Stories, Latest, Features, and Opinion sections. The Newspaper page presents an editorial list with small category labels.
+- **Search.** A `/search` route with a three-tier ranking algorithm — title matches rank above category/tag matches, which rank above excerpt/body matches, with a recency boost for stories from the last 30 days. Query is passed in the URL (`/search?q=…`) so results are shareable and indexable.
+- **Top Stories.** The homepage lead and secondary cluster are driven by an explicit slug list (`TOP_STORY_SLUGS` in `src/lib/data.ts`), because the CMS has no sticky posts and no featured custom field. The list is empty by default, so the page falls back to the most recent stories until someone picks the lead.
 - **Article pages.** Dynamic routes with story-type labels, bylines, dates, featured images, sanitized article bodies, and related stories.
 
 ### How the platform works (for contributors)
@@ -74,6 +76,7 @@ Nothing about the WordPress connection is hidden — contributors need to unders
 src/
   app/
     page.tsx              # Homepage
+    search/page.tsx        # Search results
     newspaper/page.tsx     # Newspaper archive
     about/page.tsx         # About page
     contact/page.tsx       # Contact page
