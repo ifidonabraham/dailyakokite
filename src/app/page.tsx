@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getLatestStories, formatDate } from "@/lib/data";
+import { getLatestStories, getTopStories, formatDate } from "@/lib/data";
 import type { Story } from "@/types/wp";
 
 export const revalidate = 300;
 
 export async function generateMetadata() {
-  const lead = await (await import("@/lib/data")).getLatestStories(1);
-  const featuredImage = lead[0]?.featuredImage || "/wp-content/uploads/2026/11/RedElegantEventProposalPresentation_20261103_212819_0000.jpg";
+  const lead = await (await import("@/lib/data")).getLeadStory();
+  const featuredImage = lead?.featuredImage || "/wp-content/uploads/2026/11/RedElegantEventProposalPresentation_20261103_212819_0000.jpg";
   return {
     title: "Home - DAILY AKOKITE",
     description:
@@ -36,8 +36,12 @@ const TOP_CATEGORIES = [
 export default async function Home() {
   const stories = await getLatestStories(30);
 
-  const lead = stories[0];
-  const secondary = stories.slice(1, 4);
+  // Lead + secondary cluster come from the explicit Top Stories list (see
+  // TOP_STORY_SLUGS in data.ts). Falls back to the most recent stories when
+  // the list is empty, so the page never breaks.
+  const top = await getTopStories(4);
+  const lead = top[0] || stories[0];
+  const secondary = top.slice(1, 4).length > 0 ? top.slice(1, 4) : stories.slice(1, 4);
   const latest = stories.slice(4, 12);
   const features = stories.filter((s) => s.storyType === "feature").slice(0, 4);
   const opinion = stories.filter((s) => s.storyType === "opinion").slice(0, 3);

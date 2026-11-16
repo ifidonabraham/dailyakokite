@@ -9,3 +9,4 @@ public/wp-content/uploads
 # Local development caches (not part of the public project)
 data/
 scripts/
+*.tsbuildinfo

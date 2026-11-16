@@ -223,6 +223,109 @@ export async function getAuthorStoryCounts(): Promise<
   return counts;
 }
 
+// --- Search (3-tier ranking) ---
+//
+// WordPress exposes a server-side `search` param, but it only matches titles and
+// ignores everything else. We do the ranking here so we can score title,
+// category/tags, and excerpt/body separately, with a recency boost.
+//
+// Tiers (highest score wins):
+//   1. title   - every query token appears in the title
+//   2. tags    - query matches a category name or tag
+//   3. body    - query appears anywhere in excerpt or body text
+// Exact-phrase matches and recent stories get a bonus on top.
+
+export async function searchStories(
+  query: string,
+  limit = 20
+): Promise<Story[]> {
+  const q = query.trim();
+  if (!q) return [];
+
+  const tokens = q
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 1);
+  if (tokens.length === 0) return [];
+
+  const posts = await getRawPosts(100);
+  const now = Date.now();
+  const DAY = 86400000;
+
+  const scored = posts
+    .map((post) => {
+      const story = normalizeStory(post);
+      const title = story.title.toLowerCase();
+      const excerpt = story.excerpt.toLowerCase();
+      const body = story.body.toLowerCase();
+      const cats = (story.categories || []).join(" ").toLowerCase();
+      const tags = (post.tags || []).join(" ").toLowerCase();
+      const hayTags = cats + " " + tags;
+
+      let score = 0;
+      let tier = 3;
+
+      // Tier 1: title
+      if (tokens.every((t) => title.includes(t))) {
+        score += 100;
+        tier = 1;
+        if (title.includes(q.toLowerCase())) score += 25; // exact phrase
+      }
+      // Tier 2: category / tags
+      if (tokens.every((t) => hayTags.includes(t))) {
+        score += 50;
+        if (tier > 2) tier = 2;
+        if (hayTags.includes(q.toLowerCase())) score += 15;
+      }
+      // Tier 3: excerpt / body
+      if (tokens.every((t) => excerpt.includes(t) || body.includes(t))) {
+        score += 10;
+        if (tier > 3) tier = 3;
+      }
+      if (score === 0) return null;
+
+      // Recency boost: stories from the last 30 days get up to +20.
+      const age = now - new Date(story.publishedAt).getTime();
+      score += age <= 30 * DAY ? 20 : age <= 90 * DAY ? 10 : 0;
+
+      return { story, score, tier };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+    .sort((a, b) => b.score - a.score || b.story.publishedAt.localeCompare(a.story.publishedAt))
+    .slice(0, limit)
+    .map((r) => r.story);
+
+  return scored;
+}
+
+// --- Top Stories ---
+//
+// The CMS has no sticky posts and no custom "featured" field (all post meta is
+// Astra layout junk). So top-story selection is an explicit list of slugs in
+// this file. Edit TOP_STORY_SLUGS to change the homepage lead; everything else
+// falls back to the most recent story.
+
+const TOP_STORY_SLUGS: string[] = [
+  // e.g. "impunity-threatens-press-freedom"
+];
+
+export async function getTopStories(limit = 4): Promise<Story[]> {
+  const wanted = TOP_STORY_SLUGS.slice(0, limit);
+  if (wanted.length === 0) return [];
+
+  const stories = await Promise.all(wanted.map((slug) => getStoryBySlug(slug)));
+  return stories
+    .filter((s): s is Story => s !== null)
+    .slice(0, limit);
+}
+
+export async function getLeadStory(): Promise<Story | null> {
+  const [top] = await getTopStories(1);
+  if (top) return top;
+  const [latest] = await getLatestStories(1);
+  return latest || null;
+}
+
 // --- Helpers ---
 
 export function stripHtml(html: string): string {
