@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getLatestStories, getTopStories, formatDate } from "@/lib/data";
+import { getLatestStories, getTopStories, formatDate, toSlug } from "@/lib/data";
 import type { Story } from "@/types/wp";
 
 export const revalidate = 300;
@@ -34,29 +34,28 @@ const TOP_CATEGORIES = [
 ];
 
 export default async function Home() {
-  const stories = await getLatestStories(30);
+  const stories = await getLatestStories(40);
 
-  // Lead + secondary cluster come from the explicit Top Stories list (see
-  // TOP_STORY_SLUGS in data.ts). Falls back to the most recent stories when
-  // the list is empty, so the page never breaks.
   const top = await getTopStories(4);
   const lead = top[0] || stories[0];
   const secondary = top.slice(1, 4).length > 0 ? top.slice(1, 4) : stories.slice(1, 4);
-  const latest = stories.slice(4, 12);
+
+  // High density clusters
+  const latest = stories.slice(4, 16);
   const features = stories.filter((s) => s.storyType === "feature").slice(0, 4);
-  const opinion = stories.filter((s) => s.storyType === "opinion").slice(0, 3);
+  const opinion = stories.filter((s) => s.storyType === "opinion").slice(0, 6);
 
   return (
-    <main id="main">
-      {/* Category ribbon */}
-      <nav className="border-b border-black bg-white">
+    <main id="main" className="bg-[#fdfdfb]">
+      {/* Category ribbon - compact & uppercase */}
+      <nav className="border-b border-black/10 bg-white sticky top-0 z-40">
         <div className="site-container">
-          <div className="flex items-center gap-6 py-3 overflow-x-auto">
+          <div className="flex items-center gap-6 py-2 overflow-x-auto no-scrollbar">
             {TOP_CATEGORIES.map((c) => (
               <Link
                 key={c.label}
                 href={c.href}
-                className="text-[11px] font-sans font-semibold uppercase tracking-widest text-ink/70 hover:text-brand whitespace-nowrap"
+                className="text-[10px] font-sans font-bold uppercase tracking-[0.15em] text-ink/60 hover:text-brand whitespace-nowrap transition-colors"
               >
                 {c.label}
               </Link>
@@ -65,164 +64,197 @@ export default async function Home() {
         </div>
       </nav>
 
-      {/* Lead story */}
-      {lead && <LeadStory story={lead} />}
+      <div className="site-container py-8">
+        {/* Top Cluster: Lead + 3 Side stories */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+          {lead && (
+            <div className="lg:col-span-3">
+              <LeadStory story={lead} />
+            </div>
+          )}
+          <div className="space-y-6">
+            <h4 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-ink/40 border-b border-black/5 pb-2 mb-4">
+              More Top Stories
+            </h4>
+            {secondary.map((s) => (
+              <SideStory key={s.slug} story={s} />
+            ))}
+          </div>
+        </div>
 
-      {/* Secondary cluster */}
-      {secondary.length > 0 && (
-        <section className="site-container py-10 border-t border-black">
-          <div className="section-heading">
-            <span className="rule" />
-            <h2>Top Stories</h2>
+        {/* Dense Grid Section: Latest Stories */}
+        <section className="mb-16">
+          <div className="section-heading border-t-4 border-black pt-4 mb-8">
+            <h2 className="font-display text-2xl font-bold uppercase tracking-tight">Latest News</h2>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {secondary.map((s, i) =>
-              i === 0 ? (
-                <TextLead key={s.slug} story={s} />
-              ) : (
-                <ImageTeaser key={s.slug} story={s} />
-              )
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Latest feed */}
-      {latest.length > 0 && (
-        <section className="site-container py-10 border-t border-black">
-          <div className="section-heading">
-            <span className="rule" />
-            <h2>Latest</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8">
-            {latest.map((s) => (
-              <TextTeaser key={s.slug} story={s} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+            {latest.map((s, i) => (
+              <DensityCard key={s.slug} story={s} compact={i >= 4} />
             ))}
           </div>
         </section>
-      )}
 
-      {/* Section fronts */}
-      {features.length > 0 && (
-        <section className="site-container py-10 border-t border-black">
-          <div className="section-heading">
-            <span className="rule" />
-            <h2>Features</h2>
-            <Link href="/newspaper">All stories →</Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {features.slice(0, 2).map((s) => (
-              <ImageTeaser key={s.slug} story={s} />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* Two-Column Mid Section: Features & Opinion */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 border-t border-black/10 pt-10">
+          <section className="lg:col-span-2">
+            <div className="section-heading mb-8">
+              <h2 className="font-display text-2xl font-bold italic">Features</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {features.map((s) => (
+                <FeatureCard key={s.slug} story={s} />
+              ))}
+            </div>
+          </section>
 
-      {opinion.length > 0 && (
-        <section className="site-container py-10 border-t border-black">
-          <div className="section-heading">
-            <span className="rule" />
-            <h2>Opinion</h2>
-            <Link href="/newspaper">All stories →</Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {opinion.map((s) => (
-              <TextTeaser key={s.slug} story={s} />
-            ))}
-          </div>
-        </section>
-      )}
+          <section>
+            <div className="section-heading mb-8">
+              <h2 className="font-display text-2xl font-bold uppercase tracking-tight">Opinion</h2>
+            </div>
+            <div className="space-y-8">
+              {opinion.map((s) => (
+                <OpinionCard key={s.slug} story={s} />
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
     </main>
   );
 }
 
 function LeadStory({ story }: { story: Story }) {
   return (
-    <section className="site-container py-10">
-      <div className="grid md:grid-cols-2 gap-8">
-        {story.featuredImage && (
-          <div className="card-frame">
-            <img
-              src={story.featuredImage}
-              alt={story.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-        <div>
-          <span className="cat-tag">
-            {story.storyType === "press-release" ? "Press Release" : "Top Story"}
-          </span>
-          <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight mt-3 mb-4">
-            <Link href={`/${story.slug}`} className="hover:text-brand transition-colors">
+    <article className="group">
+      <div className="grid md:grid-cols-5 gap-8">
+        <div className="md:col-span-3">
+          {story.featuredImage && (
+            <Link href={`/${story.slug}`} className="block">
+              <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
+                <img
+                  src={story.featuredImage}
+                  alt={story.title}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </div>
+            </Link>
+          )}
+        </div>
+        <div className="md:col-span-2 flex flex-col">
+          <Link
+            href={`/category/${toSlug(story.category)}`}
+            className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-3 hover:underline"
+          >
+            {story.category}
+          </Link>
+          <h1 className="font-display text-3xl md:text-5xl font-bold leading-[1.1] mb-4">
+            <Link href={`/${story.slug}`} className="hover:text-brand transition-colors decoration-brand/30 hover:underline underline-offset-4">
               {story.title}
             </Link>
           </h1>
-          <div className="flex items-center gap-4 text-sm text-ink/60 mb-4">
-            <span className="font-semibold text-ink">{story.author}</span>
-            <span className="text-ink/30">|</span>
-            <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
-          </div>
-          <p className="text-ink/80 leading-relaxed">
+          <p className="text-ink/70 leading-relaxed mb-6 line-clamp-4">
             {story.excerpt}
           </p>
-          <Link
-            href={`/${story.slug}`}
-            className="inline-block mt-4 text-sm font-sans font-semibold text-brand"
-          >
-            Read more →
-          </Link>
+          <div className="mt-auto pt-4 border-t border-black/5 flex items-center justify-between text-[10px] font-sans font-bold uppercase tracking-widest text-ink/40">
+            <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
+            {story.byline && <span className="text-brand">{story.byline}</span>}
+          </div>
         </div>
       </div>
-    </section>
-  );
-}
-
-function TextLead({ story }: { story: Story }) {
-  return (
-    <article className="lg:col-span-2">
-      <div className="cat-tag mb-2">{story.category}</div>
-      <h3 className="font-display text-xl font-bold leading-tight mb-2">
-        <Link href={`/${story.slug}`} className="hover:text-brand transition-colors">
-          {story.title}
-        </Link>
-      </h3>
-      <p className="text-ink/70 text-sm">{story.excerpt}</p>
     </article>
   );
 }
 
-function ImageTeaser({ story }: { story: Story }) {
+function SideStory({ story }: { story: Story }) {
+  return (
+    <article className="group pb-6 border-b border-black/5 last:border-0">
+      <Link
+        href={`/category/${toSlug(story.category)}`}
+        className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2 block hover:underline"
+      >
+        {story.category}
+      </Link>
+      <h3 className="font-display text-lg font-bold leading-tight group-hover:text-brand transition-colors mb-2">
+        <Link href={`/${story.slug}`}>{story.title}</Link>
+      </h3>
+      <div className="text-[10px] font-sans font-medium text-ink/40 uppercase tracking-wider">
+        {formatDate(story.publishedAt)}
+      </div>
+    </article>
+  );
+}
+
+function DensityCard({ story, compact = false }: { story: Story; compact?: boolean }) {
+  return (
+    <article className="group flex flex-col h-full">
+      {!compact && story.featuredImage && (
+        <Link href={`/${story.slug}`} className="block mb-4">
+          <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
+            <img
+              src={story.featuredImage}
+              alt={story.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+        </Link>
+      )}
+      <div className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2">
+        {story.category}
+      </div>
+      <h3 className={`font-display font-bold leading-tight mb-3 transition-colors group-hover:text-brand ${compact ? 'text-lg' : 'text-xl'}`}>
+        <Link href={`/${story.slug}`}>{story.title}</Link>
+      </h3>
+      {!compact && (
+        <p className="text-ink/70 text-sm leading-relaxed mb-4 line-clamp-3">
+          {story.excerpt}
+        </p>
+      )}
+      <div className="mt-auto text-[10px] font-sans font-medium text-ink/30 uppercase tracking-widest">
+        {formatDate(story.publishedAt)}
+      </div>
+    </article>
+  );
+}
+
+function FeatureCard({ story }: { story: Story }) {
   return (
     <article className="group">
       {story.featuredImage && (
-        <div className="card-frame mb-3">
-          <img
-            src={story.featuredImage}
-            alt={story.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-      <div className="cat-tag mb-2">{story.category}</div>
-      <h3 className="font-display text-base font-bold leading-tight">
-        <Link href={`/${story.slug}`} className="hover:text-brand transition-colors">
-          {story.title}
+        <Link href={`/${story.slug}`} className="block mb-4">
+          <div className="overflow-hidden aspect-video bg-surface border border-black/5">
+            <img
+              src={story.featuredImage}
+              alt={story.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
         </Link>
+      )}
+      <h3 className="font-display text-2xl font-bold leading-tight mb-3 group-hover:text-brand transition-colors">
+        <Link href={`/${story.slug}`}>{story.title}</Link>
       </h3>
+      <p className="text-ink/70 text-sm leading-relaxed line-clamp-2">
+        {story.excerpt}
+      </p>
     </article>
   );
 }
 
-function TextTeaser({ story }: { story: Story }) {
+function OpinionCard({ story }: { story: Story }) {
   return (
-    <article className="group">
-      <div className="flex items-center gap-2 text-xs font-sans text-ink/60 mb-1">
-        <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
+    <article className="group pb-6 border-b border-black/5 last:border-0">
+      <div className="flex items-start gap-4">
+        <div className="flex-1">
+          <h3 className="font-display text-lg font-bold leading-tight group-hover:text-brand transition-colors mb-1">
+            <Link href={`/${story.slug}`}>{story.title}</Link>
+          </h3>
+          {story.byline && (
+            <div className="text-[11px] font-sans font-bold uppercase tracking-widest text-ink/40">
+              {story.byline}
+            </div>
+          )}
+        </div>
       </div>
-      <h3 className="font-display text-sm font-bold leading-tight group-hover:text-brand transition-colors">
-        <Link href={`/${story.slug}`}>{story.title}</Link>
-      </h3>
     </article>
   );
 }
