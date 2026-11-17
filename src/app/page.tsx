@@ -25,12 +25,12 @@ export async function generateMetadata() {
 }
 
 const TOP_CATEGORIES = [
-  { href: "/newspaper", label: "News" },
-  { href: "/newspaper", label: "Opinion" },
-  { href: "/newspaper", label: "Features" },
-  { href: "/newspaper", label: "Sports" },
-  { href: "/newspaper", label: "Arts" },
-  { href: "/newspaper", label: "Campus Life" },
+  { href: "/category/news", label: "News" },
+  { href: "/category/opinion", label: "Opinion" },
+  { href: "/category/feature", label: "Features" },
+  { href: "/category/sports", label: "Sports" },
+  { href: "/category/arts", label: "Arts" },
+  { href: "/category/campus-life", label: "Campus Life" },
 ];
 
 export default async function Home() {
