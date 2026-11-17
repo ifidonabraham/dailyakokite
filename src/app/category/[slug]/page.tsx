@@ -60,30 +60,34 @@ export default async function CategoryPage({
 
   return (
     <main id="main">
-      <div className="site-container py-10">
+      <div className="site-container py-12 flex flex-col items-center text-center">
         <Link
           href="/"
-          className="text-sm font-sans font-semibold text-brand mb-8 inline-block"
+          className="text-xs font-sans font-bold uppercase tracking-widest text-brand mb-6 hover:underline"
         >
-          ← Back to Home
+          ← Home
         </Link>
-        <h1 className="font-display text-5xl md:text-6xl font-extrabold leading-none mb-2">
+        <h1 className="font-display text-5xl md:text-7xl font-bold leading-none mb-4">
           {displayName}
         </h1>
-        <p className="text-sm font-sans text-ink/60 uppercase tracking-wider">
+        <p className="font-display text-lg md:text-xl text-ink/60 italic">
           From DAILY AKOKITE
         </p>
       </div>
 
-      <section className="site-container pb-16 border-t border-black">
+      <div className="site-container">
+        <div className="border-t border-black mb-10" />
+      </div>
+
+      <section className="site-container pb-20">
         {filtered.length > 0 ? (
-          <div className="grid md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
             {filtered.map((story) => (
               <CategoryCard key={story.slug} story={story} />
             ))}
           </div>
         ) : (
-          <p className="text-ink/50 py-10">
+          <p className="text-ink/50 py-12 text-center font-sans">
             No stories found in this category yet. Check back soon.
           </p>
         )}
@@ -94,39 +98,39 @@ export default async function CategoryPage({
 
 function CategoryCard({ story }: { story: Story }) {
   return (
-    <article>
+    <article className="group">
       {story.featuredImage && (
-        <Link href={`/${story.slug}`} className="block mb-4">
-          <div className="overflow-hidden img-frame">
+        <Link href={`/${story.slug}`} className="block mb-5">
+          <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
             <img
               src={story.featuredImage}
               alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
         </Link>
       )}
-      <div className="text-[11px] font-medium uppercase tracking-widest text-brand mb-2">
+      <div className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-3">
         {story.category}
       </div>
-      <h3 className="font-display text-2xl font-bold leading-tight mb-2">
-        <Link href={`/${story.slug}`} className="hover:text-brand transition-colors">
+      <h3 className="font-display text-2xl font-bold leading-tight mb-3">
+        <Link href={`/${story.slug}`} className="hover:text-brand transition-colors decoration-brand/30 underline-offset-4 hover:underline">
           {story.title}
         </Link>
       </h3>
       {story.excerpt && (
-        <p className="text-ink/70 text-sm leading-relaxed mb-3">
+        <p className="text-ink/70 text-sm leading-relaxed mb-4 line-clamp-3">
           {story.excerpt}
         </p>
       )}
-      <div className="text-[11px] font-sans text-ink/60">
+      <div className="flex items-center justify-between pt-4 border-t border-black/5 text-[11px] font-sans text-ink/50 uppercase tracking-wider">
         <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
         {story.byline && (
           <Link
             href={`/authors/${toSlug(story.byline)}`}
-            className="ml-2 text-brand font-semibold hover:underline"
+            className="text-brand font-bold hover:underline"
           >
-            By {story.byline}
+            {story.byline}
           </Link>
         )}
       </div>

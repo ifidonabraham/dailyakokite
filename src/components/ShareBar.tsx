@@ -1,18 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Story } from "@/types/wp";
 
-export default function ShareBar({ story }: { story: Story }) {
+export default function ShareBar({
+  story,
+  position = "bottom",
+}: {
+  story: Story;
+  position?: "top" | "bottom";
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const url = typeof window !== "undefined"
-    ? window.location.href
-    : `https://dailyakokite.vercel.app/${story.slug}`;
+  const url =
+    typeof window !== "undefined"
+      ? window.location.href
+      : `https://dailyakokite.vercel.app/${story.slug}`;
 
   const shareText = encodeURIComponent(`${story.title} - DAILY AKOKITE`);
   const shareUrl = encodeURIComponent(url);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const copyLink = async () => {
     try {
@@ -40,12 +61,12 @@ export default function ShareBar({ story }: { story: Story }) {
 
   const items: ShareItem[] = [
     {
-      label: "Copy link",
+      label: copied ? "Copied!" : "Copy link",
       action: copyLink,
-      icon: copied ? "✓" : "🔗",
+      icon: "🔗",
     },
     {
-      label: "Twitter",
+      label: "Twitter / 𝕏",
       href: `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`,
       icon: "𝕏",
     },
@@ -55,31 +76,49 @@ export default function ShareBar({ story }: { story: Story }) {
       icon: "f",
     },
     {
-      label: "Email",
-      href: `mailto:?subject=${encodeURIComponent(story.title)}&body=${encodeURIComponent(`${story.title}\n${url}`)}`,
-      icon: "✉",
-    },
-    {
       label: "WhatsApp",
       href: `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`,
       icon: "💬",
     },
+    {
+      label: "Email",
+      href: `mailto:?subject=${encodeURIComponent(
+        story.title
+      )}&body=${encodeURIComponent(`${story.title}\n${url}`)}`,
+      icon: "✉",
+    },
   ];
 
   return (
-    <div className="relative">
+    <div className="relative inline-block" ref={containerRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold uppercase tracking-wider border border-black hover:bg-black hover:text-white transition-colors"
+        className="flex items-center justify-center w-9 h-9 rounded-full border border-black/10 hover:border-black hover:bg-black hover:text-white transition-all"
         aria-label="Share article"
         aria-expanded={open}
       >
-        <span>Share</span>
-        <span className={open ? "rotate-180" : ""}>▾</span>
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-44 bg-white border border-black shadow-lg z-50">
+        <div
+          className={`absolute right-0 w-48 bg-white border border-black shadow-xl z-50 py-1 ${
+            position === "top" ? "top-full mt-2" : "bottom-full mb-2"
+          }`}
+        >
           {items.map((item) =>
             item.href ? (
               <a
@@ -87,19 +126,22 @@ export default function ShareBar({ story }: { story: Story }) {
                 href={item.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm font-sans hover:bg-black hover:text-white transition-colors"
+                className="flex items-center gap-3 px-4 py-2 text-sm font-sans font-medium hover:bg-black hover:text-white transition-colors"
                 onClick={() => setOpen(false)}
               >
-                <span className="w-4 text-center">{item.icon}</span>
+                <span className="w-5 text-center text-xs">{item.icon}</span>
                 {item.label}
               </a>
             ) : (
               <button
                 key={item.label}
-                onClick={() => item.action?.()}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-sans hover:bg-black hover:text-white transition-colors w-full text-left"
+                onClick={() => {
+                  item.action?.();
+                  if (!copied) setOpen(false);
+                }}
+                className="flex items-center gap-3 px-4 py-2 text-sm font-sans font-medium hover:bg-black hover:text-white transition-colors w-full text-left"
               >
-                <span className="w-4 text-center">{item.icon}</span>
+                <span className="w-5 text-center text-xs">{item.icon}</span>
                 {item.label}
               </button>
             )

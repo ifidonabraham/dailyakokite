@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getStoryBySlug, formatDate, toSlug } from "@/lib/data";
 import type { Story } from "@/types/wp";
-import StoryHeader from "@/components/StoryHeader";
 import ArticleBody from "@/components/ArticleBody";
 import RelatedStories from "@/components/RelatedStories";
 import ShareBar from "@/components/ShareBar";
@@ -15,7 +14,7 @@ const STORY_TYPE_LABELS: Record<Story["storyType"], string> = {
   "press-release": "Press Release",
 };
 
-// NYT-style category slugs for the ribbon links
+// NYT-style category slugs
 const CATEGORY_SLUGS: Record<string, string> = {
   News: "news",
   Feature: "feature",
@@ -46,72 +45,96 @@ export default async function ArticlePage({
 
   return (
     <article>
-      <div className="site-container py-8">
-        <Link
-          href="/"
-          className="text-sm font-sans font-semibold text-brand mb-6 inline-block"
-        >
-          ← Back to Home
-        </Link>
+      <div className="site-container py-8 md:py-12">
         <div className="reading-column">
-          {/* Category ribbon - links to category archive */}
-          <nav className="flex items-center gap-2 text-xs font-sans font-semibold uppercase tracking-wider text-ink/60 mb-3">
-            <Link
-              href={`/category/${toSlug(storyTypeLabel)}`}
-              className="text-brand hover:underline"
-            >
-              {storyTypeLabel}
-            </Link>
-            <span className="text-ink/30">|</span>
-            <Link
-              href={`/category/${categorySlug}`}
-              className="text-brand hover:underline"
-            >
-              {story.category}
-            </Link>
-            <span className="text-ink/30">|</span>
-            <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
-            {story.updatedAt && story.updatedAt !== story.publishedAt && (
-              <>
-                <span className="text-ink/30">|</span>
-                <span>updated {formatDate(story.updatedAt)}</span>
-              </>
-            )}
-          </nav>
+          <Link
+            href="/"
+            className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-ink/40 hover:text-brand mb-8 inline-block transition-colors"
+          >
+            ← Back to Edition
+          </Link>
 
-          <h1 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-4">
-            {story.title}
-          </h1>
+          <header className="mb-10">
+            {/* Top Ribbon & Share Bar - NYT Style */}
+            <div className="flex items-center justify-between border-y border-black/10 py-3 mb-8">
+              <nav className="flex items-center gap-3 text-[10px] font-sans font-bold uppercase tracking-widest">
+                <Link
+                  href={`/category/${toSlug(storyTypeLabel)}`}
+                  className="text-brand hover:underline underline-offset-4"
+                >
+                  {storyTypeLabel}
+                </Link>
+                <span className="text-ink/20">/</span>
+                <Link
+                  href={`/category/${categorySlug}`}
+                  className="text-ink/60 hover:text-brand hover:underline underline-offset-4"
+                >
+                  {story.category}
+                </Link>
+              </nav>
+              <div className="flex items-center gap-4">
+                <time
+                  dateTime={story.publishedAt}
+                  className="hidden sm:block text-[10px] font-sans font-medium uppercase tracking-wider text-ink/40"
+                >
+                  {formatDate(story.publishedAt)}
+                </time>
+                <ShareBar story={story} position="top" />
+              </div>
+            </div>
+
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-8">
+              {story.title}
+            </h1>
+
+            {story.excerpt && (
+              <p className="font-display text-xl md:text-2xl text-ink/60 leading-snug mb-8 max-w-2xl">
+                {story.excerpt}
+              </p>
+            )}
+          </header>
 
           {story.featuredImage && (
-            <figure className="mb-8">
-              <img
-                src={story.featuredImage}
-                alt={story.title}
-                className="w-full h-auto"
-              />
+            <figure className="mb-12 -mx-4 md:-mx-8">
+              <div className="bg-surface border-y border-black/5">
+                <img
+                  src={story.featuredImage}
+                  alt={story.title}
+                  className="w-full h-auto"
+                />
+              </div>
+              {story.featuredImageAlt && (
+                <figcaption className="mt-3 px-4 md:px-8 text-[11px] font-sans text-ink/50 uppercase tracking-wider leading-relaxed">
+                  {story.featuredImageAlt}
+                </figcaption>
+              )}
             </figure>
           )}
 
           <ArticleBody html={story.body} />
 
-          {/* Byline + Share bar - below the article */}
-          <footer className="mt-10 pt-6 border-t border-black">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="font-display text-lg">
+          {/* Footer Byline - Semafor Style */}
+          <footer className="mt-16 pt-8 border-t border-black">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
+              <div className="font-display text-xl md:text-2xl italic">
                 —{" "}
                 {story.byline ? (
                   <Link
                     href={`/authors/${toSlug(story.byline)}`}
-                    className="text-brand underline decoration-1 hover:decoration-2 underline-offset-2"
+                    className="text-brand not-italic font-bold underline decoration-brand/30 decoration-2 underline-offset-8 hover:decoration-brand transition-all"
                   >
                     {story.byline}
                   </Link>
                 ) : (
-                  story.author
+                  <span className="not-italic font-bold">{story.author}</span>
                 )}
               </div>
-              <ShareBar story={story} />
+              <div className="flex items-center gap-4">
+                <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-ink/30">
+                  Share this story
+                </span>
+                <ShareBar story={story} />
+              </div>
             </div>
           </footer>
         </div>
