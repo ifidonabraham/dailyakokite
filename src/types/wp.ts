@@ -82,6 +82,8 @@ export interface Story {
   author: string;
   authorId: number;
   authorSlug: string;
+  byline: string | null;
+  authorName: string;
   publishedAt: string;
   updatedAt: string;
   featuredImage: string | null;

@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { getAuthors, getAuthorStoryCounts } from "@/lib/data";
+import {
+  getAuthorsFromBylines,
+  getAuthorStoryCountsFromBylines,
+} from "@/lib/data";
 import type { Author } from "@/types/wp";
 
 export const revalidate = 300;
@@ -10,34 +13,29 @@ export async function generateMetadata() {
 
 export default async function AuthorsPage() {
   const [authors, counts] = await Promise.all([
-    getAuthors(),
-    getAuthorStoryCounts(),
+    getAuthorsFromBylines(),
+    getAuthorStoryCountsFromBylines(),
   ]);
 
-  // Filter out the generic "Editor" account if it has no dedicated slug
-  const visible = authors.filter(
-    (a) => a.slug && a.slug !== "thepressclubunilag"
-  );
+  const ranked = authors
+    .map((a) => ({ ...a, storyCount: counts[a.slug] ?? 0 }))
+    .sort((a, b) => b.storyCount - a.storyCount || a.name.localeCompare(b.name));
 
   return (
     <article>
       <div className="site-container py-8">
         <h1 className="font-display text-4xl font-extrabold mb-6">Authors</h1>
         <p className="text-ink/70 max-w-2xl mb-10">
-          The journalists, editors, and contributors behind Daily Akokite.
-          Click a name to see their articles.
+          The contributors behind Daily Akokite. Click a name to see all of
+          their articles.
         </p>
       </div>
 
       <section className="site-container pb-16 border-t border-black">
-        {visible.length > 0 ? (
+        {ranked.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {visible.map((author) => (
-              <AuthorCard
-                key={author.slug}
-                author={author}
-                count={counts[author.slug] ?? 0}
-              />
+            {ranked.map((author) => (
+              <AuthorCard key={author.slug} author={author} />
             ))}
           </div>
         ) : (
@@ -48,13 +46,7 @@ export default async function AuthorsPage() {
   );
 }
 
-function AuthorCard({
-  author,
-  count,
-}: {
-  author: Author;
-  count: number;
-}) {
+function AuthorCard({ author }: { author: Author }) {
   return (
     <Link
       href={`/authors/${author.slug}`}
@@ -77,7 +69,7 @@ function AuthorCard({
         {author.name}
       </h3>
       <div className="text-sm font-sans text-ink/60 mt-1">
-        {count} {count === 1 ? "article" : "articles"}
+        {author.storyCount} {author.storyCount === 1 ? "article" : "articles"}
       </div>
     </Link>
   );

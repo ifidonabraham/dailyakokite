@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  getAuthorBySlug,
-  getStoriesByAuthor,
-  getAuthorStoryCounts,
+  getAuthorsFromBylines,
+  getStoriesByByline,
+  getAuthorStoryCountsFromBylines,
 } from "@/lib/data";
 import type { Author, Story } from "@/types/wp";
 
@@ -15,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const author = await getAuthorBySlug(slug);
+  const author = (await getAuthorsFromBylines()).find((a) => a.slug === slug);
   if (!author)
     return { title: "Author not found - DAILY AKOKITE" };
   return {
@@ -30,13 +30,15 @@ export default async function AuthorPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [author, stories, counts] = await Promise.all([
-    getAuthorBySlug(slug),
-    getStoriesByAuthor(slug, 20),
-    getAuthorStoryCounts(),
+  const [author, counts] = await Promise.all([
+    getAuthorsFromBylines(),
+    getAuthorStoryCountsFromBylines(),
   ]);
 
-  if (!author) notFound();
+  const found = author.find((a) => a.slug === slug);
+  if (!found) notFound();
+
+  const stories = await getStoriesByByline(found.name);
 
   const count = counts[slug] ?? stories.length;
 
@@ -53,20 +55,20 @@ export default async function AuthorPage({
         <div className="flex flex-col md:flex-row items-start gap-8">
           <div className="flex flex-col items-center text-center md:items-start md:text-left">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-surface border border-black mb-4">
-              {author.avatar ? (
+              {found.avatar ? (
                 <img
-                  src={author.avatar}
-                  alt={author.name}
+                  src={found.avatar}
+                  alt={found.name}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center font-display text-3xl font-bold text-ink/40">
-                  {author.name.charAt(0)}
+                  {found.name.charAt(0)}
                 </div>
               )}
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold leading-tight">
-              {author.name}
+              {found.name}
             </h1>
             <div className="text-sm font-sans text-ink/60 mt-2">
               {count} {count === 1 ? "article" : "articles"}
@@ -74,13 +76,14 @@ export default async function AuthorPage({
           </div>
 
           <div className="flex-1">
-            {author.bio ? (
+            {found.bio ? (
               <p className="text-ink/80 leading-relaxed max-w-2xl">
-                {author.bio}
+                {found.bio}
               </p>
             ) : (
               <p className="text-ink/50 italic">
-                Staff writer at Daily Akokite.
+                Contributor to Daily Akokite, the student newspaper of the
+                University of Lagos.
               </p>
             )}
           </div>
@@ -90,7 +93,7 @@ export default async function AuthorPage({
       <section className="site-container pb-16 border-t border-black">
         <div className="section-heading">
           <span className="rule" />
-          <h2>Articles by {author.name}</h2>
+          <h2>Articles by {found.name}</h2>
         </div>
 
         {stories.length > 0 ? (

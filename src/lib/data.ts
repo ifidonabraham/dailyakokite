@@ -87,6 +87,7 @@ export function normalizeStory(post: WPPost): Story {
   const cats = (post.categories || []).map((c) => CATEGORY_NAMES[c] || String(c));
   const primary = cats[0] || "News";
   const image = post.featured_image_urls?.full?.[0] || null;
+  const byline = extractByline(post.content.rendered);
   return {
     id: post.id,
     slug: post.slug,
@@ -99,6 +100,8 @@ export function normalizeStory(post: WPPost): Story {
     author: post.author_info?.display_name || "Daily Akokite",
     authorId: post.author_info?.id || 0,
     authorSlug: authorSlugFromLink(post.author_info?.author_link || ""),
+    byline,
+    authorName: byline || post.author_info?.display_name || "Daily Akokite",
     publishedAt: post.date,
     updatedAt: post.modified,
     featuredImage: image ? rewriteImageUrl(image) : null,
@@ -369,4 +372,82 @@ function authorSlugFromLink(link: string): string {
   if (!link) return "";
   const parts = link.split("/").filter(Boolean);
   return parts[parts.length - 1] || "";
+}
+
+/**
+ * Extract the contributor byline from the first paragraph of a post body.
+ *
+ * The CMS has no contributor user records and no author taxonomy — the
+ * WordPress author field on every post is the generic "Editor" account. The
+ * real writer is recorded as a byline at the top of the article body, e.g.
+ *   <p>By <strong>Deborah Adeko-Jinadu</strong></p>
+ * or
+ *   <p>by <strong>Joseph Faluyi</strong> </p>
+ *
+ * This is the same source the live site's "About The Author" box reads. We
+ * pull it out here so it can drive author pages and bylines on the frontend.
+ * Returns null when no byline is present (most older posts).
+ */
+export function extractByline(html: string): string | null {
+  if (!html) return null;
+  const m = html.match(
+    /<p[^>]*>\s*(?:by|By|BY)\s*<strong>([^<]+)<\/strong>\s*<\/p>/i
+  );
+  if (!m) return null;
+  const name = m[1].replace(/\s+/g, " ").trim();
+  return name || null;
+}
+
+// --- Byline-based authors ---
+//
+// Authors are derived from the byline text found in post bodies, not from the
+// WordPress users table (which only has the generic "Editor" account). This is
+// the same identity the live site uses in its "About The Author" boxes.
+
+export async function getAuthorsFromBylines(): Promise<Author[]> {
+  const posts = await getRawPosts(100);
+  const bySlug = new Map<string, Author>();
+  for (const post of posts) {
+    const byline = extractByline(post.content.rendered);
+    if (!byline) continue;
+    const slug = toSlug(byline);
+    if (!slug) continue;
+    const existing = bySlug.get(slug);
+    if (!existing) {
+      bySlug.set(slug, {
+        id: 0,
+        name: byline,
+        slug,
+        bio: "",
+        avatar: null,
+        storyCount: 0,
+      });
+    }
+  }
+  return Array.from(bySlug.values());
+}
+
+export async function getStoriesByByline(
+  byline: string,
+  limit = 20
+): Promise<Story[]> {
+  const posts = await getRawPosts(100);
+  return posts
+    .filter((p) => extractByline(p.content.rendered) === byline)
+    .slice(0, limit)
+    .map(normalizeStory);
+}
+
+export async function getAuthorStoryCountsFromBylines(): Promise<
+  Record<string, number>
+> {
+  const posts = await getRawPosts(100);
+  const counts: Record<string, number> = {};
+  for (const post of posts) {
+    const byline = extractByline(post.content.rendered);
+    if (!byline) continue;
+    const slug = toSlug(byline);
+    if (slug) counts[slug] = (counts[slug] || 0) + 1;
+  }
+  return counts;
 }

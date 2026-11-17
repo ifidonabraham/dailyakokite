@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getStoryBySlug, formatDate } from "@/lib/data";
+import { getStoryBySlug, formatDate, toSlug } from "@/lib/data";
 import type { Story } from "@/types/wp";
 import StoryHeader from "@/components/StoryHeader";
 import ArticleBody from "@/components/ArticleBody";
@@ -57,7 +57,19 @@ export default async function ArticlePage({
             <h1 className="font-display text-3xl md:text-4xl font-bold leading-tight mb-4">
               {story.title}
             </h1>
-            <div className="text-sm font-sans text-ink/70 mb-6">{story.author}</div>
+            <div className="text-sm font-sans text-ink/70 mb-6">
+              By{" "}
+              {story.byline ? (
+                <Link
+                  href={`/authors/${toSlug(story.byline)}`}
+                  className="font-semibold text-brand hover:underline"
+                >
+                  {story.byline}
+                </Link>
+              ) : (
+                story.author
+              )}
+            </div>
           </header>
           {story.featuredImage && (
             <figure className="mb-8">
