@@ -43,15 +43,15 @@ export default function PrimaryNavigation() {
             </form>
             <button
               type="button"
-              className="md:hidden w-9 h-9 flex items-center justify-center border-2 border-black hover:bg-black hover:text-white transition-colors"
+              className="w-10 h-10 flex items-center justify-center border-2 border-black hover:bg-black hover:text-white transition-colors"
               aria-label="Toggle menu"
               aria-expanded={open}
               aria-controls="mobile-menu"
               onClick={() => setOpen((v) => !v)}
             >
               <span className="block w-5 h-0.5 bg-current" />
-              <span className="block w-5 h-0.5 bg-current mt-1" />
-              <span className="block w-5 h-0.5 bg-current mt-1" />
+              <span className="block w-5 h-0.5 bg-current mt-1.5" />
+              <span className="block w-5 h-0.5 bg-current mt-1.5" />
             </button>
           </div>
         </div>
