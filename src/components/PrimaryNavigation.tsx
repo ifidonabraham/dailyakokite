@@ -14,7 +14,7 @@ export default function PrimaryNavigation() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="border-b border-black bg-white" aria-label="Primary">
+    <nav className="border-b border-black/10 bg-white" aria-label="Primary">
       <div className="site-container">
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
@@ -43,15 +43,15 @@ export default function PrimaryNavigation() {
             </form>
             <button
               type="button"
-              className="md:hidden p-2 border border-black hover:bg-black hover:text-white transition-colors"
+              className="md:hidden w-9 h-9 flex items-center justify-center border-2 border-black hover:bg-black hover:text-white transition-colors"
               aria-label="Toggle menu"
               aria-expanded={open}
               aria-controls="mobile-menu"
               onClick={() => setOpen((v) => !v)}
             >
-              <span className="block w-5 h-0.5 bg-ink" />
-              <span className="block w-5 h-0.5 bg-ink mt-1" />
-              <span className="block w-5 h-0.5 bg-ink mt-1" />
+              <span className="block w-5 h-0.5 bg-current" />
+              <span className="block w-5 h-0.5 bg-current mt-1" />
+              <span className="block w-5 h-0.5 bg-current mt-1" />
             </button>
           </div>
         </div>
