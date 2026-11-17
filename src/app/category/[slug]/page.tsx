@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getLatestStories, formatDate } from "@/lib/data";
+import { getLatestStories, formatDate, toSlug } from "@/lib/data";
 import type { Story } from "@/types/wp";
 
 export const revalidate = 300;
@@ -10,9 +10,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const name = slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   return {
-    title: `${slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} - DAILY AKOKITE`,
-    description: `All stories in the ${slug} category on Daily Akokite.`,
+    title: `${name} - DAILY AKOKITE`,
+    description: `All stories in the ${name} category on Daily Akokite.`,
   };
 }
 
@@ -45,10 +46,10 @@ export default async function CategoryPage({
   const { slug } = await params;
   const stories = await getLatestStories(100);
 
-  // Normalize the slug for matching
-  const displayName = CATEGORY_NAMES[slug] || slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  const displayName =
+    CATEGORY_NAMES[slug] ||
+    slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
-  // Filter stories by category (case-insensitive)
   const filtered = stories.filter(
     (s) =>
       s.category.toLowerCase() === displayName.toLowerCase() ||
@@ -59,35 +60,30 @@ export default async function CategoryPage({
 
   return (
     <main id="main">
-      <div className="site-container py-8">
+      <div className="site-container py-10">
         <Link
           href="/"
-          className="text-sm font-sans font-semibold text-brand mb-6 inline-block"
+          className="text-sm font-sans font-semibold text-brand mb-8 inline-block"
         >
           ← Back to Home
         </Link>
-        <h1 className="font-display text-4xl font-extrabold mb-6">
+        <h1 className="font-display text-5xl md:text-6xl font-extrabold leading-none mb-2">
           {displayName}
         </h1>
-        <p className="text-ink/70 max-w-2xl mb-10">
-          All stories filed under {displayName}.
+        <p className="text-sm font-sans text-ink/60 uppercase tracking-wider">
+          From DAILY AKOKITE
         </p>
       </div>
 
       <section className="site-container pb-16 border-t border-black">
-        <div className="section-heading">
-          <span className="rule" />
-          <h2>Latest in {displayName}</h2>
-        </div>
-
         {filtered.length > 0 ? (
           <div className="grid md:grid-cols-2 gap-10">
             {filtered.map((story) => (
-              <CategoryStoryRow key={story.slug} story={story} />
+              <CategoryCard key={story.slug} story={story} />
             ))}
           </div>
         ) : (
-          <p className="text-ink/50">
+          <p className="text-ink/50 py-10">
             No stories found in this category yet. Check back soon.
           </p>
         )}
@@ -96,22 +92,44 @@ export default async function CategoryPage({
   );
 }
 
-function CategoryStoryRow({ story }: { story: Story }) {
+function CategoryCard({ story }: { story: Story }) {
   return (
-    <Link href={`/${story.slug}`} className="group block">
+    <article>
+      {story.featuredImage && (
+        <Link href={`/${story.slug}`} className="block mb-4">
+          <div className="overflow-hidden img-frame">
+            <img
+              src={story.featuredImage}
+              alt={story.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        </Link>
+      )}
       <div className="text-[11px] font-medium uppercase tracking-widest text-brand mb-2">
         {story.category}
       </div>
-      <h3 className="font-display text-xl font-bold leading-tight group-hover:text-brand transition-colors">
-        {story.title}
+      <h3 className="font-display text-2xl font-bold leading-tight mb-2">
+        <Link href={`/${story.slug}`} className="hover:text-brand transition-colors">
+          {story.title}
+        </Link>
       </h3>
-      <div className="text-[11px] font-sans text-ink/60 mt-1">
-        <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
-        {story.byline && <span> | By {story.byline}</span>}
-      </div>
       {story.excerpt && (
-        <p className="text-ink/70 text-sm mt-2">{story.excerpt}</p>
+        <p className="text-ink/70 text-sm leading-relaxed mb-3">
+          {story.excerpt}
+        </p>
       )}
-    </Link>
+      <div className="text-[11px] font-sans text-ink/60">
+        <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
+        {story.byline && (
+          <Link
+            href={`/authors/${toSlug(story.byline)}`}
+            className="ml-2 text-brand font-semibold hover:underline"
+          >
+            By {story.byline}
+          </Link>
+        )}
+      </div>
+    </article>
   );
 }

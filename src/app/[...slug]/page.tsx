@@ -95,15 +95,15 @@ export default async function ArticlePage({
 
           <ArticleBody html={story.body} />
 
-          {/* Byline + Share bar - NYT style, below the article */}
+          {/* Byline + Share bar - below the article */}
           <footer className="mt-10 pt-6 border-t border-black">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="text-sm font-sans text-ink/70">
-                By{" "}
+              <div className="font-display text-lg">
+                —{" "}
                 {story.byline ? (
                   <Link
                     href={`/authors/${toSlug(story.byline)}`}
-                    className="font-semibold text-brand hover:underline"
+                    className="text-brand underline decoration-1 hover:decoration-2 underline-offset-2"
                   >
                     {story.byline}
                   </Link>
