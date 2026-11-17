@@ -17,7 +17,7 @@ export default function PrimaryNavigation() {
     <nav className="border-b border-black/10 bg-white" aria-label="Primary">
       <div className="site-container">
         <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-6">
             {SECTIONS.map((s) => (
               <Link
                 key={s.href}
@@ -43,7 +43,7 @@ export default function PrimaryNavigation() {
             </form>
             <button
               type="button"
-              className="w-10 h-10 flex items-center justify-center border-2 border-black hover:bg-black hover:text-white transition-colors"
+              className="flex items-center justify-center w-10 h-10 border-2 border-black hover:bg-black hover:text-white transition-colors"
               aria-label="Toggle menu"
               aria-expanded={open}
               aria-controls="mobile-menu"
@@ -56,7 +56,7 @@ export default function PrimaryNavigation() {
           </div>
         </div>
         {open && (
-          <div id="mobile-menu" className="md:hidden border-t border-black py-3">
+          <div id="mobile-menu" className="border-t border-black py-3">
             <ul className="flex flex-col">
               {SECTIONS.map((s) => (
                 <li key={s.href}>
