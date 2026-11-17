@@ -43,7 +43,11 @@ This is a migration of the existing Daily Akokite WordPress site to a modern, st
 - **Section fronts.** Homepage carries a category ribbon plus Top Stories, Latest, Features, and Opinion sections. The Newspaper page presents an editorial list with small category labels.
 - **Search.** A `/search` route with a three-tier ranking algorithm — title matches rank above category/tag matches, which rank above excerpt/body matches, with a recency boost for stories from the last 30 days. Query is passed in the URL (`/search?q=…`) so results are shareable and indexable.
 - **Top Stories.** The homepage lead and secondary cluster are driven by an explicit slug list (`TOP_STORY_SLUGS` in `src/lib/data.ts`), because the CMS has no sticky posts and no featured custom field. The list is empty by default, so the page falls back to the most recent stories until someone picks the lead.
-- **Article pages.** Dynamic routes with story-type labels, bylines, dates, featured images, sanitized article bodies, and related stories.
+- **Article pages.** Dynamic routes with story-type labels, bylines, dates, featured images, sanitized article bodies, and related stories. The byline links to the author's page, matching the live site's "see author's posts" pattern.
+- **NYT/Semafor layout.** Byline sits below the article body rather than above the image. A share bar (Share, Twitter, Facebook, Email, WhatsApp) sits beside it. Category and story-type labels in the byline line link to category archives.
+- **Category archives.** A `/category/[slug]` route shows every story filed under a category, so the category ribbon and byline links have somewhere to go.
+- **NYT-style menu button.** The navigation carries a boxed hamburger icon that opens the full section list on mobile.
+- **Authors from bylines.** The CMS has no contributor user records — every post is filed under the generic "Editor" account. The real writer is recorded as a byline at the top of the article body (`By <strong>Name</strong>`), the same source the live site's "About The Author" box reads. `extractByline()` pulls it out and the Authors listing and detail pages are derived from it, so contributors appear as they publish instead of waiting for user accounts to be created.
 
 ### How the platform works (for contributors)
 
@@ -77,6 +81,7 @@ src/
   app/
     page.tsx              # Homepage
     search/page.tsx        # Search results
+    category/[slug]/page.tsx  # Category archive
     newspaper/page.tsx     # Newspaper archive
     about/page.tsx         # About page
     contact/page.tsx       # Contact page
