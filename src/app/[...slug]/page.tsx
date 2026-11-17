@@ -70,6 +70,14 @@ export default async function ArticlePage({
                 story.author
               )}
             </div>
+            {story.byline && (
+              <Link
+                href={`/authors/${toSlug(story.byline)}`}
+                className="inline-block text-sm font-sans font-semibold text-ink border border-black px-4 py-1.5 hover:bg-black hover:text-white transition-colors"
+              >
+                See author's posts →
+              </Link>
+            )}
           </header>
           {story.featuredImage && (
             <figure className="mb-8">
