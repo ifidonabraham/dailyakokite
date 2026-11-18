@@ -3,7 +3,7 @@ import PrimaryNavigation from "./PrimaryNavigation";
 
 export default function Header() {
   return (
-    <header className="border-b border-black bg-white">
+    <header className="bg-white" role="banner">
       <a href="#main" className="skip-link">
         Skip to main content
       </a>

@@ -6,255 +6,321 @@ export const revalidate = 300;
 
 export async function generateMetadata() {
   const lead = await (await import("@/lib/data")).getLeadStory();
-  const featuredImage = lead?.featuredImage || "/wp-content/uploads/2026/11/RedElegantEventProposalPresentation_20261103_212819_0000.jpg";
+  const featuredImage =
+    lead?.featuredImage ||
+    "/wp-content/uploads/2026/11/RedElegantEventProposalPresentation_20261103_212819_0000.jpg";
   return {
     title: "Home - DAILY AKOKITE",
     description:
       "Daily Akokite — the student newspaper of the University of Lagos. News, features, opinion and campus reporting from Akoka.",
     openGraph: {
       images: [
-        {
-          url: featuredImage,
-          width: 1200,
-          height: 630,
-          alt: "DAILY AKOKITE",
-        },
+        { url: featuredImage, width: 1200, height: 630, alt: "DAILY AKOKITE" },
       ],
     },
   };
 }
 
-const TOP_CATEGORIES = [
-  { href: "/category/news", label: "News" },
-  { href: "/category/opinion", label: "Opinion" },
-  { href: "/category/feature", label: "Features" },
-  { href: "/category/sports", label: "Sports" },
-  { href: "/category/arts", label: "Arts" },
-  { href: "/category/campus-life", label: "Campus Life" },
-];
-
 export default async function Home() {
-  const stories = await getLatestStories(40);
-
+  const stories = await getLatestStories(60);
   const top = await getTopStories(4);
-  const lead = top[0] || stories[0];
-  const secondary = top.slice(1, 4).length > 0 ? top.slice(1, 4) : stories.slice(1, 4);
 
-  // High density clusters
-  const latest = stories.slice(4, 16);
-  const features = stories.filter((s) => s.storyType === "feature").slice(0, 4);
-  const opinion = stories.filter((s) => s.storyType === "opinion").slice(0, 6);
+  // The very latest story (or top story) must be the hero.
+  const lead = top[0] || stories[0];
+
+  const pool = top.length > 0 ? [...top.slice(1), ...stories] : stories;
+  const seen = new Set<string>();
+  if (lead) seen.add(lead.slug);
+
+  const unique = pool.filter((s) => {
+    if (!s || seen.has(s.slug)) return false;
+    seen.add(s.slug);
+    return true;
+  });
+
+  // Rail: next 3 most recent
+  const railStories = unique.slice(0, 3);
+  // Hero: use 'lead'
+  const hero = lead;
+  // Right cards: stories 4-5
+  const rightCards = unique.slice(3, 5);
+  // Opinion: stories 6-8
+  const opinionRail = unique.slice(5, 8);
+  // More Row: 9-14
+  const moreRow = unique.slice(8, 14);
+  // World: 15
+  const worldBlock = unique[14];
+  // Rest
+  const rest = unique.slice(15, 27);
 
   return (
-    <main id="main" className="bg-[#fdfdfb]">
-      {/* Category ribbon - compact & uppercase */}
-      <nav className="border-b border-black/10 bg-white sticky top-0 z-40">
-        <div className="site-container">
-          <div className="flex items-center gap-6 py-2 overflow-x-auto no-scrollbar">
-            {TOP_CATEGORIES.map((c) => (
-              <Link
-                key={c.label}
-                href={c.href}
-                className="text-[10px] font-sans font-bold uppercase tracking-[0.15em] text-ink/60 hover:text-brand whitespace-nowrap transition-colors"
-              >
-                {c.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </nav>
+    <main id="main" className="bg-white">
+      <div className="site-container">
+        {/* ===== NYT-style 3-column top: hero first on mobile, then rail ===== */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-x-8 gap-y-10 pt-8 pb-10 border-b border-black/15">
 
-      <div className="site-container py-8">
-        {/* Top Cluster: Lead + 3 Side stories */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
-          {lead && (
-            <div className="lg:col-span-3">
-              <LeadStory story={lead} />
+          {/* CENTER HERO: Latest story. Order-first on mobile. */}
+          <div className="lg:col-span-5 lg:col-start-5 order-1 lg:order-2">
+            {hero && <HeroBlock story={hero} />}
+          </div>
+
+          {/* LEFT RAIL: Text stories. Order-second on mobile. */}
+          <div className="lg:col-span-4 lg:col-start-1 lg:border-r lg:border-black/15 lg:pr-8 order-2 lg:order-1">
+            <p className="hidden lg:block text-[10px] font-sans uppercase tracking-[0.18em] text-ink/45 text-center pb-4 border-b border-black/15 mb-6">
+              Latest from the Newsroom
+            </p>
+            <div className="divide-y divide-black/15">
+              {railStories.map((s) => (
+                <article key={s.slug} className="group py-5 first:pt-0 lg:first:pt-0">
+                  <h2 className="font-display text-xl md:text-[1.4rem] font-bold leading-[1.2] mb-2">
+                    <Link
+                      href={`/${s.slug}`}
+                      className="hover:text-brand transition-colors"
+                    >
+                      {s.title}
+                    </Link>
+                  </h2>
+                  {s.excerpt && (
+                    <p className="text-ink/65 text-[13px] leading-relaxed mb-2 line-clamp-2">
+                      {s.excerpt}
+                    </p>
+                  )}
+                  <Meta story={s} />
+                </article>
+              ))}
             </div>
-          )}
-          <div className="space-y-6">
-            <h4 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-ink/40 border-b border-black/5 pb-2 mb-4">
-              More Top Stories
-            </h4>
-            {secondary.map((s) => (
-              <SideStory key={s.slug} story={s} />
-            ))}
           </div>
-        </div>
 
-        {/* Dense Grid Section: Latest Stories */}
-        <section className="mb-16">
-          <div className="section-heading border-t-4 border-black pt-4 mb-8">
-            <h2 className="font-display text-2xl font-bold uppercase tracking-tight">Latest News</h2>
+          {/* RIGHT: image cards + opinion */}
+          <div className="lg:col-span-3 lg:border-l lg:border-black/15 lg:pl-8 order-3">
+            {rightCards.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-6 pb-6 lg:border-b lg:border-black/15">
+                {rightCards.map((s) => (
+                  <MiniCard key={s.slug} story={s} />
+                ))}
+              </div>
+            )}
+
+            <div className="pt-6">
+              <h3 className="font-display text-lg font-bold mb-4">Opinion</h3>
+              <div className="divide-y divide-black/10">
+                {opinionRail.map((s) => (
+                  <article key={s.slug} className="group py-3 first:pt-0">
+                    {s.byline && (
+                      <div className="text-[9px] font-sans font-bold uppercase tracking-[0.16em] text-ink/45 mb-1">
+                        {s.byline}
+                      </div>
+                    )}
+                    <h4 className="font-display text-[15px] font-bold leading-snug">
+                      <Link
+                        href={`/${s.slug}`}
+                        className="hover:text-brand transition-colors"
+                      >
+                        {s.title}
+                      </Link>
+                    </h4>
+                  </article>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
-            {latest.map((s, i) => (
-              <DensityCard key={s.slug} story={s} compact={i >= 4} />
+        </section>
+
+        {/* ===== "More to read" row ===== */}
+        <section className="py-12 border-b border-black/15">
+          <div className="flex items-baseline justify-between mb-8">
+            <h2 className="text-[11px] font-sans font-bold uppercase tracking-[0.2em] text-ink/70">
+              In Case You Missed It
+            </h2>
+            <Link
+              href="/category/news"
+              className="text-[10px] font-sans font-bold uppercase tracking-[0.16em] text-brand hover:underline"
+            >
+              See all →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
+            {moreRow.map((s) => (
+              <GridCard key={s.slug} story={s} />
             ))}
           </div>
         </section>
 
-        {/* Two-Column Mid Section: Features & Opinion */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 border-t border-black/10 pt-10">
-          <section className="lg:col-span-2">
-            <div className="section-heading mb-8">
-              <h2 className="font-display text-2xl font-bold italic">Features</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {features.map((s) => (
-                <FeatureCard key={s.slug} story={s} />
-              ))}
+        {/* ===== Featured Section: Large horizontal block ===== */}
+        {worldBlock && (
+          <section className="py-12 border-b border-black/15">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+              <div className="lg:col-span-5">
+                <div className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-4">
+                  {worldBlock.category}
+                </div>
+                <h2 className="font-display text-3xl md:text-5xl font-bold leading-[1.05] mb-5 tracking-tight">
+                  <Link
+                    href={`/${worldBlock.slug}`}
+                    className="hover:text-brand transition-colors"
+                  >
+                    {worldBlock.title}
+                  </Link>
+                </h2>
+                {worldBlock.excerpt && (
+                  <p className="text-ink/65 text-[15px] leading-relaxed mb-6">
+                    {worldBlock.excerpt}
+                  </p>
+                )}
+                <Meta story={worldBlock} />
+              </div>
+              <Link
+                href={`/${worldBlock.slug}`}
+                className="lg:col-span-7 block group"
+              >
+                <ImageBlock story={worldBlock} ratio="aspect-video" />
+              </Link>
             </div>
           </section>
+        )}
 
-          <section>
-            <div className="section-heading mb-8">
-              <h2 className="font-display text-2xl font-bold uppercase tracking-tight">Opinion</h2>
-            </div>
-            <div className="space-y-8">
-              {opinion.map((s) => (
-                <OpinionCard key={s.slug} story={s} />
-              ))}
-            </div>
-          </section>
-        </div>
+        {/* ===== Latest feed ===== */}
+        <section className="py-12">
+          <div className="flex items-baseline justify-between mb-10 border-t-4 border-black pt-6">
+            <h2 className="font-display text-3xl font-bold tracking-tight">
+              Latest News
+            </h2>
+            <span className="text-[11px] font-sans uppercase tracking-[0.18em] text-ink/40">
+              Updated {formatDate(new Date().toISOString())}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-14">
+            {rest.map((s) => (
+              <GridCard key={s.slug} story={s} size="sm" />
+            ))}
+          </div>
+        </section>
       </div>
     </main>
   );
 }
 
-function LeadStory({ story }: { story: Story }) {
+/* ---------- blocks ---------- */
+
+function HeroBlock({ story }: { story: Story }) {
   return (
     <article className="group">
-      <div className="grid md:grid-cols-5 gap-8">
-        <div className="md:col-span-3">
-          {story.featuredImage && (
-            <Link href={`/${story.slug}`} className="block">
-              <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
-                <img
-                  src={story.featuredImage}
-                  alt={story.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </div>
-            </Link>
-          )}
+      <Link href={`/${story.slug}`} className="block">
+        <ImageBlock story={story} ratio="aspect-[3/2] lg:aspect-[16/10]" />
+      </Link>
+      <div className="pt-6">
+        <div className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-3">
+          {story.category}
         </div>
-        <div className="md:col-span-2 flex flex-col">
+        <h1 className="font-display text-3xl md:text-4xl lg:text-[2.8rem] font-bold leading-[1.05] tracking-tight mb-4">
           <Link
-            href={`/category/${toSlug(story.category)}`}
-            className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-3 hover:underline"
+            href={`/${story.slug}`}
+            className="hover:text-brand transition-colors underline-offset-4 decoration-brand/20 hover:underline"
           >
-            {story.category}
+            {story.title}
           </Link>
-          <h1 className="font-display text-3xl md:text-5xl font-bold leading-[1.1] mb-4">
-            <Link href={`/${story.slug}`} className="hover:text-brand transition-colors decoration-brand/30 hover:underline underline-offset-4">
-              {story.title}
-            </Link>
-          </h1>
-          <p className="text-ink/70 leading-relaxed mb-6 line-clamp-4">
+        </h1>
+        {story.excerpt && (
+          <p className="text-ink/65 text-base md:text-lg leading-relaxed mb-4 line-clamp-3">
             {story.excerpt}
           </p>
-          <div className="mt-auto pt-4 border-t border-black/5 flex items-center justify-between text-[10px] font-sans font-bold uppercase tracking-widest text-ink/40">
-            <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
-            {story.byline && <span className="text-brand">{story.byline}</span>}
-          </div>
+        )}
+        <Meta story={story} />
+      </div>
+    </article>
+  );
+}
+
+function MiniCard({ story }: { story: Story }) {
+  return (
+    <article className="group flex flex-col sm:flex-row lg:flex-col gap-4">
+      <Link href={`/${story.slug}`} className="block w-full sm:w-1/3 lg:w-full shrink-0">
+        <ImageBlock story={story} ratio="aspect-[4/3] lg:aspect-[3/2]" />
+      </Link>
+      <div>
+        <h4 className="font-display text-[15px] font-bold leading-tight mt-1">
+          <Link
+            href={`/${story.slug}`}
+            className="hover:text-brand transition-colors"
+          >
+            {story.title}
+          </Link>
+        </h4>
+        <div className="text-[9px] font-sans uppercase tracking-[0.14em] text-ink/40 mt-2">
+          {formatDate(story.publishedAt)}
         </div>
       </div>
     </article>
   );
 }
 
-function SideStory({ story }: { story: Story }) {
-  return (
-    <article className="group pb-6 border-b border-black/5 last:border-0">
-      <Link
-        href={`/category/${toSlug(story.category)}`}
-        className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2 block hover:underline"
-      >
-        {story.category}
-      </Link>
-      <h3 className="font-display text-lg font-bold leading-tight group-hover:text-brand transition-colors mb-2">
-        <Link href={`/${story.slug}`}>{story.title}</Link>
-      </h3>
-      <div className="text-[10px] font-sans font-medium text-ink/40 uppercase tracking-wider">
-        {formatDate(story.publishedAt)}
-      </div>
-    </article>
-  );
-}
-
-function DensityCard({ story, compact = false }: { story: Story; compact?: boolean }) {
+function GridCard({
+  story,
+  size = "md",
+}: {
+  story: Story;
+  size?: "sm" | "md";
+}) {
   return (
     <article className="group flex flex-col h-full">
-      {!compact && story.featuredImage && (
-        <Link href={`/${story.slug}`} className="block mb-4">
-          <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
-            <img
-              src={story.featuredImage}
-              alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        </Link>
-      )}
+      <Link href={`/${story.slug}`} className="block mb-4">
+        <ImageBlock story={story} ratio="aspect-[3/2]" />
+      </Link>
       <div className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2">
         {story.category}
       </div>
-      <h3 className={`font-display font-bold leading-tight mb-3 transition-colors group-hover:text-brand ${compact ? 'text-lg' : 'text-xl'}`}>
-        <Link href={`/${story.slug}`}>{story.title}</Link>
+      <h3
+        className={`font-display font-bold leading-[1.15] mb-3 ${
+          size === "sm" ? "text-lg" : "text-2xl"
+        }`}
+      >
+        <Link
+          href={`/${story.slug}`}
+          className="hover:text-brand transition-colors"
+        >
+          {story.title}
+        </Link>
       </h3>
-      {!compact && (
-        <p className="text-ink/70 text-sm leading-relaxed mb-4 line-clamp-3">
+      {story.excerpt && (
+        <p className="text-ink/60 text-sm leading-relaxed mb-4 line-clamp-2">
           {story.excerpt}
         </p>
       )}
-      <div className="mt-auto text-[10px] font-sans font-medium text-ink/30 uppercase tracking-widest">
-        {formatDate(story.publishedAt)}
+      <div className="mt-auto">
+        <Meta story={story} />
       </div>
     </article>
   );
 }
 
-function FeatureCard({ story }: { story: Story }) {
+function ImageBlock({ story, ratio }: { story: Story; ratio: string }) {
+  if (!story.featuredImage) return null;
   return (
-    <article className="group">
-      {story.featuredImage && (
-        <Link href={`/${story.slug}`} className="block mb-4">
-          <div className="overflow-hidden aspect-video bg-surface border border-black/5">
-            <img
-              src={story.featuredImage}
-              alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        </Link>
-      )}
-      <h3 className="font-display text-2xl font-bold leading-tight mb-3 group-hover:text-brand transition-colors">
-        <Link href={`/${story.slug}`}>{story.title}</Link>
-      </h3>
-      <p className="text-ink/70 text-sm leading-relaxed line-clamp-2">
-        {story.excerpt}
-      </p>
-    </article>
+    <div className={`overflow-hidden ${ratio} bg-surface border border-black/5`}>
+      <img
+        src={story.featuredImage}
+        alt={story.title}
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+      />
+    </div>
   );
 }
 
-function OpinionCard({ story }: { story: Story }) {
+function Meta({ story }: { story: Story }) {
   return (
-    <article className="group pb-6 border-b border-black/5 last:border-0">
-      <div className="flex items-start gap-4">
-        <div className="flex-1">
-          <h3 className="font-display text-lg font-bold leading-tight group-hover:text-brand transition-colors mb-1">
-            <Link href={`/${story.slug}`}>{story.title}</Link>
-          </h3>
-          {story.byline && (
-            <div className="text-[11px] font-sans font-bold uppercase tracking-widest text-ink/40">
-              {story.byline}
-            </div>
-          )}
-        </div>
-      </div>
-    </article>
+    <div className="flex items-center gap-2 text-[10px] font-sans uppercase tracking-[0.16em] text-ink/45">
+      {story.byline ? (
+        <>
+          <Link
+            href={`/authors/${toSlug(story.byline)}`}
+            className="text-ink/70 font-bold hover:text-brand transition-colors"
+          >
+            {story.byline}
+          </Link>
+          <span className="text-ink/20">·</span>
+        </>
+      ) : null}
+      <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
+    </div>
   );
 }

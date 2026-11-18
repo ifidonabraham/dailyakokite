@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { getLatestStories, formatDate, toSlug } from "@/lib/data";
+import {
+  getStoriesByCategory,
+  getAllCategories,
+  formatDate,
+  toSlug,
+} from "@/lib/data";
 import type { Story } from "@/types/wp";
 
 export const revalidate = 300;
@@ -10,33 +15,14 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const name = slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  const cats = await getAllCategories();
+  const cat = cats.find((c) => c.slug === slug);
+  const name = cat?.name ?? titleCase(slug);
   return {
     title: `${name} - DAILY AKOKITE`,
     description: `All stories in the ${name} category on Daily Akokite.`,
   };
 }
-
-// Map of category slugs to display names
-const CATEGORY_NAMES: Record<string, string> = {
-  news: "News",
-  feature: "Feature",
-  opinion: "Opinion",
-  interview: "Interview",
-  "press-release": "Press Release",
-  general: "General",
-  sports: "Sports",
-  entertainment: "Entertainment",
-  "campus-life": "Campus Life",
-  arts: "Arts",
-  "social-commentary": "Social Commentary",
-  "social-commentary-advocacy": "Social Commentary/Advocacy",
-  article: "Article",
-  "feature-2": "Feature",
-  "opinion-article": "Opinion",
-  "press-club": "Press Club",
-  "student-personality": "Student Personality",
-};
 
 export default async function CategoryPage({
   params,
@@ -44,52 +30,46 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const stories = await getLatestStories(100);
+  const [stories, cats] = await Promise.all([
+    getStoriesByCategory(slug, 40),
+    getAllCategories(),
+  ]);
 
-  const displayName =
-    CATEGORY_NAMES[slug] ||
-    slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-
-  const filtered = stories.filter(
-    (s) =>
-      s.category.toLowerCase() === displayName.toLowerCase() ||
-      (s.categories || []).some(
-        (c) => c.toLowerCase() === displayName.toLowerCase()
-      )
-  );
+  const displayName = cats.find((c) => c.slug === slug)?.name ?? titleCase(slug);
 
   return (
     <main id="main">
-      <div className="site-container py-12 flex flex-col items-center text-center">
+      {/* Semafor-style centered masthead */}
+      <div className="site-container pt-10 md:pt-14 flex flex-col items-center text-center">
         <Link
           href="/"
-          className="text-xs font-sans font-bold uppercase tracking-widest text-brand mb-6 hover:underline"
+          className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-ink/45 hover:text-brand mb-6 transition-colors"
         >
           ← Home
         </Link>
-        <h1 className="font-display text-5xl md:text-7xl font-bold leading-none mb-4">
+        <h1 className="font-display text-5xl md:text-7xl font-bold leading-none tracking-tight">
           {displayName}
         </h1>
-        <p className="font-display text-lg md:text-xl text-ink/60 italic">
+        <p className="font-display text-lg md:text-2xl italic text-ink/60 mt-4">
           From DAILY AKOKITE
         </p>
       </div>
 
-      <div className="site-container">
-        <div className="border-t border-black mb-10" />
+      <div className="site-container mt-8 md:mt-10">
+        <div className="border-t border-black" />
       </div>
 
-      <section className="site-container pb-20">
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-            {filtered.map((story) => (
+      <section className="site-container pt-6 pb-20">
+        {stories.length === 0 ? (
+          <p className="text-ink/50 py-16 text-center font-sans">
+            No stories in {displayName} yet. Check back soon.
+          </p>
+        ) : (
+          <div className="divide-y divide-black/10">
+            {stories.map((story) => (
               <CategoryCard key={story.slug} story={story} />
             ))}
           </div>
-        ) : (
-          <p className="text-ink/50 py-12 text-center font-sans">
-            No stories found in this category yet. Check back soon.
-          </p>
         )}
       </section>
     </main>
@@ -98,10 +78,48 @@ export default async function CategoryPage({
 
 function CategoryCard({ story }: { story: Story }) {
   return (
-    <article className="group">
+    <article className="group flex flex-col sm:flex-row gap-6 md:gap-10 py-8 first:pt-2">
+      {/* Text — left side */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <span className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2">
+          {story.category}
+        </span>
+        <h2 className="font-display text-2xl md:text-3xl font-bold leading-[1.15] mb-3">
+          <Link
+            href={`/${story.slug}`}
+            className="hover:text-brand transition-colors"
+          >
+            {story.title}
+          </Link>
+        </h2>
+        {story.excerpt && (
+          <p className="text-ink/60 text-[14px] leading-relaxed mb-4 line-clamp-2">
+            {story.excerpt}
+          </p>
+        )}
+        <div className="mt-auto flex items-center gap-2 text-[10px] font-sans uppercase tracking-wider text-ink/40">
+          <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
+          {story.byline && (
+            <>
+              <span className="text-ink/20">·</span>
+              <Link
+                href={`/authors/${toSlug(story.byline)}`}
+                className="font-bold hover:text-brand hover:underline underline-offset-4 transition-colors"
+              >
+                {story.byline}
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Image — right side, only when available */}
       {story.featuredImage && (
-        <Link href={`/${story.slug}`} className="block mb-5">
-          <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
+        <Link
+          href={`/${story.slug}`}
+          className="shrink-0 w-full sm:w-44 md:w-56 lg:w-64 self-start"
+        >
+          <div className="overflow-hidden aspect-[3/2] bg-surface border border-black/5">
             <img
               src={story.featuredImage}
               alt={story.title}
@@ -110,30 +128,10 @@ function CategoryCard({ story }: { story: Story }) {
           </div>
         </Link>
       )}
-      <div className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-3">
-        {story.category}
-      </div>
-      <h3 className="font-display text-2xl font-bold leading-tight mb-3">
-        <Link href={`/${story.slug}`} className="hover:text-brand transition-colors decoration-brand/30 underline-offset-4 hover:underline">
-          {story.title}
-        </Link>
-      </h3>
-      {story.excerpt && (
-        <p className="text-ink/70 text-sm leading-relaxed mb-4 line-clamp-3">
-          {story.excerpt}
-        </p>
-      )}
-      <div className="flex items-center justify-between pt-4 border-t border-black/5 text-[11px] font-sans text-ink/50 uppercase tracking-wider">
-        <time dateTime={story.publishedAt}>{formatDate(story.publishedAt)}</time>
-        {story.byline && (
-          <Link
-            href={`/authors/${toSlug(story.byline)}`}
-            className="text-brand font-bold hover:underline"
-          >
-            {story.byline}
-          </Link>
-        )}
-      </div>
     </article>
   );
+}
+
+function titleCase(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }

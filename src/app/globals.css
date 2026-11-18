@@ -5,16 +5,16 @@
 @tailwind utilities;
 
 :root {
-  --brand: #2c5bb4;
-  --brand-dark: #1e407a;
+  --brand: #1e4a96;
+  --brand-dark: #122d5e;
   --brand-ink: #121619;
   --ink: #121619;
   --muted: #b1b7c1;
   --paper: #ffffff;
   --surface: #f4f5f7;
   --border: #e4e6ea;
-  --focus: #2c5bb4;
-  --link: #2c5bb4;
+  --focus: #1e4a96;
+  --link: #1e4a96;
   --rule: #121619;
   --light: #f7f8fa;
 }
