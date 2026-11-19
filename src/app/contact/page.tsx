@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { getPageContent } from "@/lib/data";
 import ContactForm from "@/components/ContactForm";
 
-export const revalidate = 86400;
+export const revalidate = 300;
 
 export async function generateMetadata() {
   return {
@@ -10,19 +11,12 @@ export async function generateMetadata() {
   };
 }
 
-const CONTACT_REASONS = [
-  { label: "Story tip or lead", desc: "Have news we should cover? Send us the details." },
-  { label: "Letter to the editor", desc: "Respond to our coverage or share your perspective." },
-  { label: "Press release", desc: "Sending an official announcement or event notice." },
-  { label: "Corrections", desc: "Spotted an error? Let us know and we'll correct it." },
-  { label: "Join the team", desc: "Interested in writing, design, photography or editing." },
-  { label: "Advertising / partnerships", desc: "Reach the UNILAG community through our platform." },
-];
+export default async function ContactPage() {
+  const page = await getPageContent("contact");
 
-export default function ContactPage() {
   return (
     <main id="main">
-      {/* Hero */}
+      {/* Semafor-style centered hero */}
       <div className="bg-white border-b border-black/10">
         <div className="site-container pt-10 md:pt-14 pb-10 flex flex-col items-center text-center px-4 md:px-0">
           <Link
@@ -45,27 +39,24 @@ export default function ContactPage() {
 
           {/* Form — 7 cols */}
           <div className="lg:col-span-7">
-            <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">
-              Send a Message
-            </h2>
-            <p className="text-ink/55 text-sm mb-8">
-              Fill out the form below and we&apos;ll open your email client with the message pre-filled. Or email us directly at{" "}
-              <a href="mailto:dailyakokite@gmail.com" className="text-brand hover:underline underline-offset-4">
-                dailyakokite@gmail.com
-              </a>
-            </p>
+            {/* If WP contact page has content, show it above the form */}
+            {page && (
+              <div
+                className="prose max-w-none mb-10"
+                dangerouslySetInnerHTML={{ __html: page.body }}
+              />
+            )}
+            <h2 className="font-display text-2xl font-bold mb-6">Send a Message</h2>
             <ContactForm />
           </div>
 
           {/* Sidebar — 5 cols */}
-          <aside className="lg:col-span-5 flex flex-col gap-8">
-
-            {/* Direct contact */}
+          <aside className="lg:col-span-5">
             <div className="border border-black p-6">
               <h3 className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-ink/40 mb-5">
                 Direct Contact
               </h3>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-5">
                 <div>
                   <p className="text-[10px] font-sans font-bold uppercase tracking-[0.14em] text-ink/40 mb-1">
                     Email
@@ -81,30 +72,15 @@ export default function ContactPage() {
                   <p className="text-[10px] font-sans font-bold uppercase tracking-[0.14em] text-ink/40 mb-1">
                     Location
                   </p>
-                  <address className="not-italic text-sm text-ink/70">
+                  <address className="not-italic text-sm text-ink/70 leading-relaxed">
                     University of Lagos<br />
                     Akoka, Lagos, Nigeria
                   </address>
                 </div>
               </div>
             </div>
-
-            {/* Reasons to contact */}
-            <div>
-              <h3 className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-ink/40 mb-5">
-                Why People Contact Us
-              </h3>
-              <div className="flex flex-col divide-y divide-black/10">
-                {CONTACT_REASONS.map((r) => (
-                  <div key={r.label} className="py-4 first:pt-0">
-                    <p className="font-display text-[15px] font-bold leading-tight">{r.label}</p>
-                    <p className="text-[12px] text-ink/55 mt-1">{r.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
           </aside>
+
         </div>
       </section>
     </main>

@@ -5,10 +5,11 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#0157FF",
-          ink: "#121619",
+          DEFAULT: "#1e4a96",
+          dark: "#122d5e",
           muted: "#B1B7C1",
         },
+        ink: "#121619",
         paper: "#FFFFFF",
         surface: "#F4F5F7",
         border: "#E4E6EA",
