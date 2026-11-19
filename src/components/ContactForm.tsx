@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { CONTACT } from "@/lib/site";
 
-type Field = { name: string; value: string; error: string };
 
 export default function ContactForm() {
   const [fields, setFields] = useState({
@@ -33,7 +33,7 @@ export default function ContactForm() {
     }
     // Open mail client with pre-filled content
     const body = `Name: ${fields.name}\nEmail: ${fields.email}\n\n${fields.message}`;
-    window.location.href = `mailto:dailyakokite@gmail.com?subject=${encodeURIComponent(fields.subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:${CONTACT.email}?subject=${encodeURIComponent(fields.subject)}&body=${encodeURIComponent(body)}`;
     setStatus("sent");
   }
 
@@ -47,8 +47,8 @@ export default function ContactForm() {
       <div className="border border-black p-8 text-center">
         <p className="font-display text-2xl font-bold mb-2">Message Drafted</p>
         <p className="text-ink/60 text-sm">Your email client should have opened. If it didn&apos;t, email us directly at{" "}
-          <a href="mailto:dailyakokite@gmail.com" className="text-brand hover:underline underline-offset-4">
-            dailyakokite@gmail.com
+          <a href={`mailto:${CONTACT.email}`} className="text-brand hover:underline underline-offset-4 break-all">
+            {CONTACT.email}
           </a>
         </p>
         <button

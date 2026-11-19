@@ -10,6 +10,7 @@ module.exports = {
           muted: "#B1B7C1",
         },
         ink: "#121619",
+        newsprint: "#F7F3EA",
         paper: "#FFFFFF",
         surface: "#F4F5F7",
         border: "#E4E6EA",

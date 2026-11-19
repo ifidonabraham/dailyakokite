@@ -13,11 +13,17 @@ const SECTIONS = [
 const CATEGORY_LINKS = [
   { href: "/category/news", label: "News" },
   { href: "/category/opinion", label: "Opinion" },
-  { href: "/category/feature", label: "Features" },
-  { href: "/category/sports", label: "Sports" },
-  { href: "/category/arts", label: "Arts" },
-  { href: "/category/campus-life", label: "Campus Life" },
+  { href: "/category/editorials", label: "Editorials" },
+  { href: "/category/interview", label: "Interview" },
+  { href: "/category/ulsu-watch", label: "ULSU Watch" },
+  { href: "/category/feature", label: "Feature" },
+  { href: "/category/sport", label: "Sport" },
+  { href: "/category/poem", label: "Poems" },
+  { href: "/category/entertainment", label: "Entertainment" },
 ];
+
+// "uncategorized" is relabelled "News" in WP and would duplicate the real News.
+const HIDDEN_CATEGORIES = new Set(["uncategorized", "about-us"]);
 
 export default function PrimaryNavigation() {
   const [open, setOpen] = useState(false);
@@ -30,7 +36,7 @@ export default function PrimaryNavigation() {
       .then((res) => res.json())
       .then((data) => {
         const withPosts = (data as { name: string; slug: string; count: number }[])
-          .filter((c) => c.count > 0)
+          .filter((c) => c.count > 0 && !HIDDEN_CATEGORIES.has(c.slug))
           .sort((a, b) => b.count - a.count);
         setCategories(
           withPosts.map(({ name, slug }) => ({ name, slug }))
@@ -62,23 +68,23 @@ export default function PrimaryNavigation() {
       : CATEGORY_LINKS;
 
   return (
-    <nav className="border-b border-black bg-white" aria-label="Primary">
+    <nav className="border-b border-black" aria-label="Primary">
       <div className="site-container">
-                <div className="flex items-center justify-between h-12 px-4 md:px-0">
+                <div className="flex items-center justify-between h-12">
           {/* Top row: Home | Newspaper | About | Contact */}
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-3 sm:gap-5 md:gap-8 min-w-0 overflow-x-auto no-scrollbar">
             {SECTIONS.map((s) => (
               <Link
                 key={s.href}
                 href={s.href}
-                className="text-[10px] font-sans font-bold uppercase tracking-[0.16em] text-ink hover:text-brand transition-colors"
+                className="text-[10px] font-sans font-bold uppercase tracking-[0.08em] sm:tracking-[0.16em] text-ink hover:text-brand whitespace-nowrap transition-colors"
               >
                 {s.label}
               </Link>
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 shrink-0 pl-3">
             {/* Search field - visible next to the menu button */}
             <form action="/search" method="get" className="hidden sm:flex items-center">
               <label htmlFor="nav-q" className="sr-only">
@@ -96,7 +102,7 @@ export default function PrimaryNavigation() {
             {/* Menu button: NYT-style "≡ SECTIONS" */}
             <button
               type="button"
-              className="flex items-center gap-2 px-3 h-9 border border-black hover:bg-black hover:text-white transition-colors group"
+              className="flex items-center gap-2 px-2.5 sm:px-3 h-9 border border-black hover:bg-black hover:text-white transition-colors group"
               aria-label="Open all sections"
               aria-expanded={open}
               aria-controls="sections-drawer"
@@ -107,16 +113,16 @@ export default function PrimaryNavigation() {
                 <span className="block w-[18px] h-[1.5px] bg-current" />
                 <span className="block w-[18px] h-[1.5px] bg-current" />
               </span>
-              <span className="text-[10px] font-sans font-bold uppercase tracking-[0.12em]">
+              <span className="hidden sm:inline text-[10px] font-sans font-bold uppercase tracking-[0.12em]">
                 Sections
               </span>
             </button>
           </div>
         </div>
 
-        {/* Second row: category ribbon - tighter spacing */}
-        <div className="border-t border-black/10 overflow-x-auto no-scrollbar py-2 px-4 md:px-0">
-          <div className="flex items-center gap-6 min-w-max">
+        {/* Category ribbon: tablet/desktop only; phones use the Sections drawer */}
+        <div className="hidden md:block border-t border-dashed border-ink/20 overflow-x-auto no-scrollbar py-2">
+          <div className="flex items-center gap-6 w-max mx-auto">
             {CATEGORY_LINKS.map((c) => (
               <Link
                 key={c.href}

@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { getLatestStories, getTopStories, formatDate, toSlug } from "@/lib/data";
+import {
+  getLatestStories,
+  getTopStories,
+  formatDate,
+  formatStamp,
+  toSlug,
+  wpDate,
+} from "@/lib/data";
 import type { Story } from "@/types/wp";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export async function generateMetadata() {
   const lead = await (await import("@/lib/data")).getLeadStory();
@@ -38,20 +45,22 @@ export default async function Home() {
     return true;
   });
 
-  // Rail: next 3 most recent
-  const railStories = unique.slice(0, 3);
-  // Hero: use 'lead'
   const hero = lead;
-  // Right cards: stories 4-5
-  const rightCards = unique.slice(3, 5);
-  // Opinion: stories 6-8
-  const opinionRail = unique.slice(5, 8);
-  // More Row: 9-14
-  const moreRow = unique.slice(8, 14);
-  // World: 15
-  const worldBlock = unique[14];
-  // Rest
-  const rest = unique.slice(15, 27);
+
+  // Everything published in the last 7 days goes in the top rail beside the
+  // hero (min 3 so quiet weeks still fill it, max 8 so busy weeks don't sprawl).
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const freshCount = unique.filter((s) => wpDate(s.publishedAt).getTime() >= weekAgo).length;
+  const railCount = Math.min(Math.max(freshCount, 3), 8);
+
+  let i = 0;
+  const take = (n: number) => unique.slice(i, (i += n));
+  const railStories = take(railCount);
+  const rightCards = take(2);
+  const opinionRail = take(3);
+  const moreRow = take(6);
+  const worldBlock = take(1)[0];
+  const rest = take(12);
 
   return (
     <main id="main" className="bg-white">
@@ -66,12 +75,19 @@ export default async function Home() {
 
           {/* LEFT RAIL: Text stories. Order-second on mobile. */}
           <div className="lg:col-span-4 lg:col-start-1 lg:border-r lg:border-black/15 lg:pr-8 order-2 lg:order-1">
-            <p className="hidden lg:block text-[10px] font-sans uppercase tracking-[0.18em] text-ink/45 text-center pb-4 border-b border-black/15 mb-6">
-              Latest from the Newsroom
+            <p className="text-[10px] font-sans font-bold uppercase tracking-[0.18em] text-ink/60 pb-3 border-b-2 border-black mb-5 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden="true" />
+              This Week
             </p>
             <div className="divide-y divide-black/15">
               {railStories.map((s) => (
                 <article key={s.slug} className="group py-5 first:pt-0 lg:first:pt-0">
+                  <time
+                    dateTime={s.publishedAt}
+                    className="block text-[10px] font-sans font-bold uppercase tracking-[0.14em] text-brand mb-1.5"
+                  >
+                    {formatStamp(s.publishedAt)}
+                  </time>
                   <h2 className="font-display text-xl md:text-[1.4rem] font-bold leading-[1.2] mb-2">
                     <Link
                       href={`/${s.slug}`}
@@ -85,7 +101,14 @@ export default async function Home() {
                       {s.excerpt}
                     </p>
                   )}
-                  <Meta story={s} />
+                  {s.byline && (
+                    <Link
+                      href={`/authors/${toSlug(s.byline)}`}
+                      className="text-[10px] font-sans font-bold uppercase tracking-[0.16em] text-ink/60 hover:text-brand transition-colors"
+                    >
+                      {s.byline}
+                    </Link>
+                  )}
                 </article>
               ))}
             </div>

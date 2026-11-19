@@ -29,7 +29,7 @@ export async function getRawPageBySlug(slug: string): Promise<WPPage | null> {
 }
 
 export async function getRawCategories(): Promise<
-  { id: number; name: string; slug: string }[]
+  { id: number; name: string; slug: string; count: number }[]
 > {
   return fetchWP("/categories?per_page=100");
 }
@@ -181,7 +181,7 @@ export async function getPageContent(
 }
 
 export async function getAllCategories(): Promise<
-  { id: number; name: string; slug: string }[]
+  { id: number; name: string; slug: string; count: number }[]
 > {
   return getRawCategories();
 }
@@ -346,13 +346,28 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 }
 
+// WP `date` fields are naive local times in the site's zone (Africa/Lagos, UTC+1).
+export function wpDate(dateStr: string): Date {
+  return new Date(/Z$|[+-]\d\d:?\d\d$/.test(dateStr) ? dateStr : `${dateStr}+01:00`);
+}
+
 export function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+  return wpDate(dateStr).toLocaleDateString("en-US", {
+    timeZone: "Africa/Lagos",
     year: "numeric",
     month: "short",
     day: "numeric",
   });
+}
+
+/** "Today · 9:13 AM" for today's stories, "Nov 16 · 8:16 AM" otherwise (Lagos time). */
+export function formatStamp(dateStr: string): string {
+  const opts = { timeZone: "Africa/Lagos" } as const;
+  const d = wpDate(dateStr);
+  const day = d.toLocaleDateString("en-US", { ...opts, month: "short", day: "numeric" });
+  const today = new Date().toLocaleDateString("en-US", { ...opts, month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { ...opts, hour: "numeric", minute: "2-digit" });
+  return `${day === today ? "Today" : day} · ${time}`;
 }
 
 export function rewriteImageUrl(url: string): string {

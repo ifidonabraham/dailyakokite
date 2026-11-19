@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getAllCategories } from "@/lib/data";
+import { CONTACT, TAGLINE } from "@/lib/site";
+import SocialLinks from "./SocialLinks";
 
 const PAGES = [
   { href: "/", label: "Home" },
@@ -11,14 +13,17 @@ const PAGES = [
 
 export default async function Footer() {
   const categories = await getAllCategories().catch(() => []);
-  const sections = categories.slice(0, 14);
+  const sections = categories
+    .filter((c) => c.count > 0 && c.slug !== "uncategorized")
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 14);
 
   return (
     <footer className="bg-ink text-white mt-20" role="contentinfo">
       {/* Top accent rule */}
       <div className="h-[3px] bg-white" />
 
-      <div className="site-container pt-12 pb-6 px-4 md:px-0">
+      <div className="site-container pt-12 pb-6">
         {/* Main grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-white/10">
 
@@ -37,14 +42,11 @@ export default async function Footer() {
               </span>
             </Link>
             <p className="text-[13px] text-white/55 leading-relaxed">
-              The student newspaper of the University of Lagos — informing, challenging, and amplifying the Akoka community since 2003.
+              {TAGLINE}. An editorial outlet of The Press Club, University of Lagos.
             </p>
-            <Link
-              href="/about"
-              className="inline-block mt-5 text-[9px] font-sans font-bold uppercase tracking-[0.16em] border border-white/25 hover:border-white px-4 py-2 text-white/55 hover:text-white transition-colors"
-            >
-              About the paper →
-            </Link>
+            <div className="mt-5">
+              <SocialLinks tone="light" />
+            </div>
           </div>
 
           {/* Sections — 5 cols, 2 column sub-grid */}
@@ -91,14 +93,19 @@ export default async function Footer() {
               <h3 className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-white/35 mb-4">
                 Contact
               </h3>
-              <address className="not-italic text-[13px] text-white/55 leading-relaxed">
-                <p>University of Lagos, Akoka</p>
-                <p>Lagos, Nigeria</p>
+              <address className="not-italic text-[13px] text-white/55 leading-relaxed flex flex-col gap-1">
+                <p>{CONTACT.address}</p>
                 <a
-                  href="mailto:dailyakokite@gmail.com"
-                  className="mt-2 inline-block text-white/70 hover:text-white underline underline-offset-4 transition-colors"
+                  href={`mailto:${CONTACT.email}`}
+                  className="text-white/70 hover:text-white underline underline-offset-4 transition-colors break-all"
                 >
-                  dailyakokite@gmail.com
+                  {CONTACT.email}
+                </a>
+                <a
+                  href={`tel:${CONTACT.phone.replace(/-/g, "")}`}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  {CONTACT.phone}
                 </a>
               </address>
             </div>

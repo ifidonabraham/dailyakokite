@@ -7,7 +7,7 @@ import {
 } from "@/lib/data";
 import type { Story } from "@/types/wp";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,
