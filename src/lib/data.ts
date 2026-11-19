@@ -9,24 +9,35 @@ const POST_FIELDS =
   "id,slug,title,excerpt,content,link,date,modified,categories,tags,author,format,status,featured_media,author_info,featured_image_urls";
 
 const RETRY_DELAYS_MS = [500, 1500];
+const TIMEOUT_MS = 15_000;
 
-// The WP host intermittently refuses bursts of requests from Vercel, so retry
-// throttling/server errors before letting the render fail.
-async function fetchWP<T>(endpoint: string): Promise<T> {
+// Not an AbortSignal: passing `signal` to fetch opts out of Next's request
+// memoization, which multiplied WordPress calls per render. Race a timer instead.
+function withTimeout<T>(promise: Promise<T>, endpoint: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`WP timeout for ${endpoint}`)), TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// The WP host intermittently refuses bursts (508 Resource Limit), so retry
+// throttling/server errors before letting the render fail. `revalidate` is the
+// Data Cache lifetime in seconds, shared by every route requesting the same URL.
+async function fetchWP<T>(endpoint: string, revalidate = 300): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
-    try {
-      const res = await fetch(`${WP_API_URL}${endpoint}`, {
-        signal: AbortSignal.timeout(30_000),
+    const res = await withTimeout(
+      fetch(`${WP_API_URL}${endpoint}`, {
         headers: { "User-Agent": "DailyAkokite-Next/1.0 (+https://dailyakokite.vercel.app)" },
-      });
-      if (res.ok) return res.json();
-      lastError = new Error(`WP ${res.status} ${res.statusText} for ${endpoint}`);
-      if (res.status < 500 && res.status !== 429 && res.status !== 403) break;
-    } catch (err) {
-      lastError = err;
-    }
+        next: { revalidate },
+      }),
+      endpoint
+    );
+    if (res.ok) return res.json();
+    lastError = new Error(`WP ${res.status} ${res.statusText} for ${endpoint}`);
+    if (res.status < 500 && res.status !== 429 && res.status !== 403) break;
   }
   throw lastError;
 }
@@ -34,7 +45,7 @@ async function fetchWP<T>(endpoint: string): Promise<T> {
 // --- Raw WordPress fetchers (CMS layer) ---
 
 export async function getRawPosts(perPage = 100): Promise<WPPost[]> {
-  return fetchWP(`/posts?_fields=${POST_FIELDS}&per_page=${perPage}`);
+  return fetchWP(`/posts?_fields=${POST_FIELDS}&per_page=${perPage}`, 60);
 }
 
 export async function getRawPostBySlug(slug: string): Promise<WPPost | null> {
@@ -56,17 +67,17 @@ export async function getRawPageBySlug(slug: string): Promise<WPPage | null> {
 export async function getRawCategories(): Promise<
   { id: number; name: string; slug: string; count: number }[]
 > {
-  return fetchWP("/categories?per_page=100");
+  return fetchWP("/categories?per_page=100", 3600);
 }
 
 export async function getAuthorsRaw(): Promise<WPAuthor[]> {
-  return fetchWP("/users?per_page=100");
+  return fetchWP("/users?per_page=100", 3600);
 }
 
 export async function getAuthorBySlugRaw(
   slug: string
 ): Promise<WPAuthor[]> {
-  return fetchWP(`/users?slug=${encodeURIComponent(slug)}`);
+  return fetchWP(`/users?slug=${encodeURIComponent(slug)}`, 3600);
 }
 
 // --- Normalized story contract (frontend content contract, CMS-agnostic) ---
@@ -160,9 +171,13 @@ export function normalizePage(page: WPPage): PageContent {
 
 // --- Normalized public-facing queries ---
 
+// Every "latest N" request (home, related stories, newspaper, 404, feed) reads
+// one shared list so a single cached WordPress response serves them all.
+const LATEST_POOL = 60;
+
 export async function getLatestStories(limit = 12): Promise<Story[]> {
-  const posts = await getRawPosts(limit);
-  return posts.map(normalizeStory);
+  const posts = await getRawPosts(Math.max(limit, LATEST_POOL));
+  return posts.slice(0, limit).map(normalizeStory);
 }
 
 export async function getCategoriesWithStories(): Promise<
@@ -201,7 +216,8 @@ export async function getStoriesByCategory(
   const cat = cats.find((c) => c.slug === slug);
   if (!cat) return [];
   const posts = await fetchWP<WPPost[]>(
-    `/posts?_fields=${POST_FIELDS}&categories=${cat.id}&per_page=${limit}`
+    `/posts?_fields=${POST_FIELDS}&categories=${cat.id}&per_page=${limit}`,
+    60
   );
   return posts.map(normalizeStory);
 }
@@ -566,7 +582,8 @@ async function searchBylinePosts(slug: string): Promise<WPPost[]> {
   const words = slug.split("-").filter(Boolean).join(" ");
   if (!words) return [];
   const posts = await fetchWP<WPPost[]>(
-    `/posts?_fields=${POST_FIELDS}&per_page=100&search=${encodeURIComponent(words)}`
+    `/posts?_fields=${POST_FIELDS}&per_page=100&search=${encodeURIComponent(words)}`,
+    3600
   );
   return posts.filter((p) => {
     const b = extractByline(p.content.rendered);

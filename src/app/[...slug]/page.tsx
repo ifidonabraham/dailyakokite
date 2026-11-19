@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getStoryBySlug, formatDate, toSlug, wpDate } from "@/lib/data";
+import { Suspense } from "react";
+import { getStoryBySlug, getLatestStories, formatDate, toSlug, wpDate } from "@/lib/data";
 import type { Story } from "@/types/wp";
 import ArticleBody from "@/components/ArticleBody";
 import RelatedStories from "@/components/RelatedStories";
@@ -30,9 +31,11 @@ const SITE_URL = "https://dailyakokite.vercel.app";
 
 export const revalidate = 300;
 
-// Empty list = render on first request, then cache with ISR (see revalidate).
+// Prebuild the newest articles (the ones linked from the homepage) so the first
+// click is instant; everything else renders on first request, then ISR-caches.
 export async function generateStaticParams() {
-  return [];
+  const latest = await getLatestStories(12).catch(() => []);
+  return latest.map((s) => ({ slug: [s.slug] }));
 }
 
 // Articles live at a single path segment (/post-slug). Anything deeper, or with
@@ -181,7 +184,9 @@ export default async function ArticlePage({
           </footer>
         </div>
       </div>
-      <RelatedStories slug={story.slug} />
+      <Suspense fallback={null}>
+        <RelatedStories slug={story.slug} />
+      </Suspense>
     </article>
     </main>
   );

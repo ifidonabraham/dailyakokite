@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLatestStories } from "@/lib/data";
 import type { Story } from "@/types/wp";
+import StoryImage from "./StoryImage";
 
 export default async function RelatedStories({ slug }: { slug: string }) {
   const stories = await getLatestStories(30);
@@ -27,19 +28,7 @@ function StoryTeaser({ story }: { story: Story }) {
   return (
     <article className="group flex flex-col h-full">
       <Link href={`/${story.slug}`} className="block mb-4">
-        {story.featuredImage ? (
-          <div className="overflow-hidden aspect-[16/10] bg-surface border border-black/5">
-            <img
-              src={story.featuredImage}
-              alt={story.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        ) : (
-          <div className="h-48 bg-surface border border-black/5 flex items-center justify-center text-ink/30">
-            <span className="text-[10px]">No image</span>
-          </div>
-        )}
+        <StoryImage story={story} ratio="aspect-[16/10]" />
       </Link>
       <div className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2">
         {story.category}
