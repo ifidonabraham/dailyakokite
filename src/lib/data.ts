@@ -6,12 +6,27 @@ const WP_API_URL = "https://unilagnews.com/wp-json/wp/v2";
 const POST_FIELDS =
   "id,slug,title,excerpt,content,link,date,modified,categories,tags,author,format,status,author_info,featured_image_urls";
 
+const RETRY_DELAYS_MS = [500, 1500];
+
+// The WP host intermittently refuses bursts of requests from Vercel, so retry
+// throttling/server errors before letting the render fail.
 async function fetchWP<T>(endpoint: string): Promise<T> {
-  const res = await fetch(`${WP_API_URL}${endpoint}`, {
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) throw new Error(`Failed to fetch: ${endpoint}`);
-  return res.json();
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+    try {
+      const res = await fetch(`${WP_API_URL}${endpoint}`, {
+        signal: AbortSignal.timeout(30_000),
+        headers: { "User-Agent": "DailyAkokite-Next/1.0 (+https://dailyakokite.vercel.app)" },
+      });
+      if (res.ok) return res.json();
+      lastError = new Error(`WP ${res.status} ${res.statusText} for ${endpoint}`);
+      if (res.status < 500 && res.status !== 429 && res.status !== 403) break;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 
 // --- Raw WordPress fetchers (CMS layer) ---
