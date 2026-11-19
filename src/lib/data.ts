@@ -88,6 +88,10 @@ export function normalizeStory(post: WPPost): Story {
   const primary = cats[0] || "News";
   const image = post.featured_image_urls?.full?.[0] || null;
   const byline = extractByline(post.content.rendered);
+  // Fallback: if no featured image is set, pull the first image out of the
+  // article body. Many posts (especially essays) have an inline image but no
+  // featured image, so the preview still shows something.
+  const bodyImage = image ? null : extractFirstImage(post.content.rendered);
   return {
     id: post.id,
     slug: post.slug,
@@ -104,7 +108,7 @@ export function normalizeStory(post: WPPost): Story {
     authorName: byline || post.author_info?.display_name || "Daily Akokite",
     publishedAt: post.date,
     updatedAt: post.modified,
-    featuredImage: image ? rewriteImageUrl(image) : null,
+    featuredImage: image ? rewriteImageUrl(image) : (bodyImage ? rewriteImageUrl(bodyImage) : null),
     featuredImageAlt: post.title.rendered,
     canonicalUrl: post.link ? rewriteContentHtml(post.link) : "",
     status: post.status,
@@ -157,10 +161,16 @@ export async function getStoriesByCategory(
   slug: string,
   limit = 20
 ): Promise<Story[]> {
-  const posts = await getRawPosts(limit);
-  return posts
-    .filter((p) => (p.categories || []).includes(Number(slug)))
-    .map(normalizeStory);
+  // Resolve the slug to a category id, then ask WordPress for posts in that
+  // category directly. Filtering the last N posts client-side misses older
+  // stories (e.g. essays from last year) and Number(slug) is always NaN.
+  const cats = await getRawCategories();
+  const cat = cats.find((c) => c.slug === slug);
+  if (!cat) return [];
+  const posts = await fetchWP<WPPost[]>(
+    `/posts?_embed&categories=${cat.id}&per_page=${limit}`
+  );
+  return posts.map(normalizeStory);
 }
 
 export async function getPageContent(
@@ -396,6 +406,21 @@ export function extractByline(html: string): string | null {
   if (!m) return null;
   const name = m[1].replace(/\s+/g, " ").trim();
   return name || null;
+}
+
+/**
+ * Pull the first image out of a post body when no featured image is set.
+ *
+ * Many posts — especially essays and long-form pieces — have an inline
+ * `<figure><img>` at the top of the body but no featured image assigned in
+ * the CMS. Without this fallback those posts show a blank placeholder in
+ * every card and grid. Returns null when the body has no usable image.
+ */
+export function extractFirstImage(html: string): string | null {
+  if (!html) return null;
+  // Match src in double quotes, single quotes, or unquoted
+  const m = html.match(/<img\s+[^>]*?src=(?:["']([^"']+)["']|([^\s>]+))/i);
+  return m ? m[1] || m[2] : null;
 }
 
 // --- Byline-based authors ---
