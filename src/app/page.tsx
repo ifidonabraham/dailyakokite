@@ -8,6 +8,7 @@ import {
   wpDate,
 } from "@/lib/data";
 import type { Story } from "@/types/wp";
+import StoryImage from "@/components/StoryImage";
 
 export const revalidate = 60;
 
@@ -53,14 +54,26 @@ export default async function Home() {
   const freshCount = unique.filter((s) => wpDate(s.publishedAt).getTime() >= weekAgo).length;
   const railCount = Math.min(Math.max(freshCount, 3), 8);
 
-  let i = 0;
-  const take = (n: number) => unique.slice(i, (i += n));
-  const railStories = take(railCount);
-  const rightCards = take(2);
-  const opinionRail = take(3);
-  const moreRow = take(6);
-  const worldBlock = take(1)[0];
-  const rest = take(12);
+  const railStories = unique.slice(0, railCount);
+  const remaining = unique.slice(railCount);
+
+  // Photo slots go to the most recent stories that have photos; text-only
+  // stories fill the text lists, so the top of the page is never bare.
+  const used = new Set<string>();
+  const pick = (from: Story[], n: number) => {
+    const out = from.filter((s) => !used.has(s.slug)).slice(0, n);
+    out.forEach((s) => used.add(s.slug));
+    return out;
+  };
+  const withPhoto = remaining.filter((s) => s.featuredImage);
+  const rightCards = pick(withPhoto, 2);
+  const moreRow = pick(withPhoto, 6);
+  const worldBlock = pick(withPhoto, 1)[0];
+  const opinionRail = pick(
+    [...remaining.filter((s) => s.storyType === "opinion"), ...remaining],
+    3
+  );
+  const rest = pick(remaining, 12);
 
   return (
     <main id="main" className="bg-white">
@@ -81,7 +94,8 @@ export default async function Home() {
             </p>
             <div className="divide-y divide-black/15">
               {railStories.map((s) => (
-                <article key={s.slug} className="group py-5 first:pt-0 lg:first:pt-0">
+                <article key={s.slug} className="group py-5 first:pt-0 lg:first:pt-0 flex gap-4">
+                  <div className="min-w-0 flex-1">
                   <time
                     dateTime={s.publishedAt}
                     className="block text-[10px] font-sans font-bold uppercase tracking-[0.14em] text-brand mb-1.5"
@@ -107,6 +121,12 @@ export default async function Home() {
                       className="text-[10px] font-sans font-bold uppercase tracking-[0.16em] text-ink/60 hover:text-brand transition-colors"
                     >
                       {s.byline}
+                    </Link>
+                  )}
+                  </div>
+                  {s.featuredImage && (
+                    <Link href={`/${s.slug}`} className="shrink-0 w-24 sm:w-28 lg:w-24 xl:w-28 pt-5" tabIndex={-1} aria-hidden="true">
+                      <StoryImage story={s} ratio="aspect-square" size="sm" />
                     </Link>
                   )}
                 </article>
@@ -196,7 +216,7 @@ export default async function Home() {
                 href={`/${worldBlock.slug}`}
                 className="lg:col-span-7 block group"
               >
-                <ImageBlock story={worldBlock} ratio="aspect-video" />
+                <StoryImage story={worldBlock} ratio="aspect-video" size="lg" />
               </Link>
             </div>
           </section>
@@ -229,7 +249,7 @@ function HeroBlock({ story }: { story: Story }) {
   return (
     <article className="group">
       <Link href={`/${story.slug}`} className="block">
-        <ImageBlock story={story} ratio="aspect-[3/2] lg:aspect-[16/10]" />
+        <StoryImage story={story} ratio="aspect-[3/2] lg:aspect-[16/10]" size="lg" priority />
       </Link>
       <div className="pt-6">
         <div className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-3">
@@ -258,7 +278,7 @@ function MiniCard({ story }: { story: Story }) {
   return (
     <article className="group flex flex-col sm:flex-row lg:flex-col gap-4">
       <Link href={`/${story.slug}`} className="block w-full sm:w-1/3 lg:w-full shrink-0">
-        <ImageBlock story={story} ratio="aspect-[4/3] lg:aspect-[3/2]" />
+        <StoryImage story={story} ratio="aspect-[4/3] lg:aspect-[3/2]" size="sm" />
       </Link>
       <div>
         <h4 className="font-display text-[15px] font-bold leading-tight mt-1">
@@ -287,7 +307,7 @@ function GridCard({
   return (
     <article className="group flex flex-col h-full">
       <Link href={`/${story.slug}`} className="block mb-4">
-        <ImageBlock story={story} ratio="aspect-[3/2]" />
+        <StoryImage story={story} ratio="aspect-[3/2]" size={size === "sm" ? "sm" : "md"} />
       </Link>
       <div className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-brand mb-2">
         {story.category}
@@ -313,19 +333,6 @@ function GridCard({
         <Meta story={story} />
       </div>
     </article>
-  );
-}
-
-function ImageBlock({ story, ratio }: { story: Story; ratio: string }) {
-  if (!story.featuredImage) return null;
-  return (
-    <div className={`overflow-hidden ${ratio} bg-surface border border-black/5`}>
-      <img
-        src={story.featuredImage}
-        alt={story.title}
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-      />
-    </div>
   );
 }
 

@@ -13,7 +13,7 @@ export default async function Header() {
     .map(({ name, slug }) => ({ name, slug }));
 
   return (
-    <header className="bg-newsprint" role="banner">
+    <header className="bg-white" role="banner">
       <a href="#main" className="skip-link">
         Skip to main content
       </a>

@@ -10,15 +10,14 @@ module.exports = {
           muted: "#B1B7C1",
         },
         ink: "#121619",
-        newsprint: "#F7F3EA",
         paper: "#FFFFFF",
         surface: "#F4F5F7",
         border: "#E4E6EA",
       },
       fontFamily: {
-        display: ["Playfair Display", "Merriweather", "Georgia", "serif"],
-        serif: ["Merriweather", "Georgia", "serif"],
-        sans: ["Inter", "Helvetica Neue", "Arial", "sans-serif"],
+        display: ["var(--font-display)", "Playfair Display", "Merriweather", "Georgia", "serif"],
+        serif: ["var(--font-serif)", "Merriweather", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "Inter", "Helvetica Neue", "Arial", "sans-serif"],
       },
       maxWidth: {
         site: "1280px",

@@ -36,7 +36,7 @@ export default async function Masthead() {
   return (
     <div>
       {/* Date / campus bar */}
-      <div className="border-b border-dashed border-ink/20">
+      <div className="border-b border-black/10">
         <div className="site-container flex items-center justify-between gap-3 h-9 text-[10px] font-sans font-medium uppercase tracking-[0.12em] text-ink/55">
           <span className="truncate">
             <LagosDate />
@@ -74,8 +74,10 @@ export default async function Masthead() {
           The Press Club, University of Lagos
         </p>
       </div>
+      {/* Broadsheet double rule */}
       <div className="site-container">
-        <div className="border-t border-dashed border-ink/20" />
+        <div className="border-t-[3px] border-black" />
+        <div className="mt-[3px] border-t border-black" />
       </div>
     </div>
   );

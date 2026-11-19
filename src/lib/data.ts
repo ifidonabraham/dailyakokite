@@ -3,8 +3,10 @@ import type { WPPost, WPPage, Story, PageContent, WPAuthor, Author } from "@/typ
 const WP_API_URL = "https://unilagnews.com/wp-json/wp/v2";
 
 // Fields normalizeStory actually reads; keeps list payloads ~17x smaller than _embed.
+// featured_media and author must stay: the plugin fields featured_image_urls and
+// author_info are computed from them and come back empty without them.
 const POST_FIELDS =
-  "id,slug,title,excerpt,content,link,date,modified,categories,tags,author,format,status,author_info,featured_image_urls";
+  "id,slug,title,excerpt,content,link,date,modified,categories,tags,author,format,status,featured_media,author_info,featured_image_urls";
 
 const RETRY_DELAYS_MS = [500, 1500];
 

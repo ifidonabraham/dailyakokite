@@ -115,7 +115,7 @@ export default function PrimaryNavigation({
         </div>
 
         {/* Category ribbon: tablet/desktop only; phones use the Sections drawer */}
-        <div className="hidden md:block border-t border-dashed border-ink/20 overflow-x-auto no-scrollbar py-2">
+        <div className="hidden md:block border-t border-black/10 overflow-x-auto no-scrollbar py-2">
           <div className="flex items-center gap-6 w-max mx-auto">
             {CATEGORY_LINKS.map((c) => (
               <Link
