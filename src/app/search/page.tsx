@@ -11,7 +11,7 @@ export async function generateMetadata({
 }) {
   const { q } = await searchParams;
   return {
-    title: q ? `Search: ${q} - DAILY AKOKITE` : "Search - DAILY AKOKITE",
+    title: q ? `Search: ${q}` : "Search",
     description: q
       ? `Search results for "${q}" on DAILY AKOKITE.`
       : "Search stories, features and opinion on DAILY AKOKITE.",

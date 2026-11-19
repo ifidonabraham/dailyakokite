@@ -8,7 +8,7 @@ import type { Author } from "@/types/wp";
 export const revalidate = 300;
 
 export async function generateMetadata() {
-  return { title: "Authors - DAILY AKOKITE" };
+  return { title: "Authors" };
 }
 
 export default async function AuthorsPage() {
@@ -22,7 +22,7 @@ export default async function AuthorsPage() {
     .sort((a, b) => b.storyCount - a.storyCount || a.name.localeCompare(b.name));
 
   return (
-    <article>
+    <main id="main">
       <div className="site-container py-8">
         <h1 className="font-display text-4xl font-extrabold mb-6">Authors</h1>
         <p className="text-ink/70 max-w-2xl mb-10">
@@ -42,7 +42,7 @@ export default async function AuthorsPage() {
           <p className="text-ink/50">No authors available yet.</p>
         )}
       </section>
-    </article>
+    </main>
   );
 }
 

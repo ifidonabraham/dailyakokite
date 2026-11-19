@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getStoryBySlug, formatDate, toSlug } from "@/lib/data";
+import { getStoryBySlug, formatDate, toSlug, wpDate } from "@/lib/data";
 import type { Story } from "@/types/wp";
 import ArticleBody from "@/components/ArticleBody";
 import RelatedStories from "@/components/RelatedStories";
@@ -22,13 +22,31 @@ const CATEGORY_SLUGS: Record<string, string> = {
   Interview: "interview",
   "Press Release": "press-release",
   General: "general",
-  Sports: "sports",
+  Sport: "sport",
   Entertainment: "entertainment",
-  "Campus Life": "campus-life",
-  Arts: "arts",
 };
 
+const SITE_URL = "https://dailyakokite.vercel.app";
+
 export const revalidate = 300;
+
+// Empty list = render on first request, then cache with ISR (see revalidate).
+export async function generateStaticParams() {
+  return [];
+}
+
+// Articles live at a single path segment (/post-slug). Anything deeper, or with
+// a file extension (favicon.ico, robots.txt), is not an article: skip the WP call.
+function articleSlug(parts: string[]): string | null {
+  if (parts.length !== 1) return null;
+  const slug = parts[0];
+  return slug && !slug.includes(".") ? slug : null;
+}
+
+function absoluteUrl(path: string | null) {
+  if (!path) return undefined;
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
 
 export default async function ArticlePage({
   params,
@@ -36,14 +54,38 @@ export default async function ArticlePage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug: slugParts } = await params;
-  const slug = slugParts.join("-");
+  const slug = articleSlug(slugParts);
+  if (!slug) notFound();
   const story = await getStoryBySlug(slug);
   if (!story) notFound();
 
   const storyTypeLabel = STORY_TYPE_LABELS[story.storyType] || "News";
   const categorySlug = CATEGORY_SLUGS[story.category] || toSlug(story.category);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: story.title,
+    description: story.excerpt || undefined,
+    image: story.featuredImage ? [absoluteUrl(story.featuredImage)] : undefined,
+    datePublished: wpDate(story.publishedAt).toISOString(),
+    dateModified: wpDate(story.updatedAt || story.publishedAt).toISOString(),
+    author: { "@type": "Person", name: story.byline || story.author },
+    publisher: {
+      "@type": "Organization",
+      name: "DAILY AKOKITE",
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/da-logo.png` },
+    },
+    mainEntityOfPage: `${SITE_URL}/${story.slug}`,
+    articleSection: story.category,
+  };
+
   return (
+    <main id="main">
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+    />
     <article>
       <div className="site-container py-8 md:py-12">
         <div className="reading-column">
@@ -141,6 +183,7 @@ export default async function ArticlePage({
       </div>
       <RelatedStories slug={story.slug} />
     </article>
+    </main>
   );
 }
 
@@ -150,16 +193,31 @@ export async function generateMetadata({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug: slugParts } = await params;
-  const slug = slugParts.join("-");
-  const story = await getStoryBySlug(slug);
-  if (!story) return { title: "Story not found - DAILY AKOKITE" };
+  const slug = articleSlug(slugParts);
+  const story = slug ? await getStoryBySlug(slug) : null;
+  if (!story) return { title: "Story not found" };
+  const image = absoluteUrl(story.featuredImage);
   return {
-    title: `${story.title} - DAILY AKOKITE`,
+    title: story.title,
     description: story.excerpt || undefined,
+    alternates: { canonical: `/${story.slug}` },
     openGraph: {
+      type: "article",
+      url: `/${story.slug}`,
       title: story.title,
       description: story.excerpt || undefined,
-      images: story.featuredImage ? [story.featuredImage] : undefined,
+      publishedTime: wpDate(story.publishedAt).toISOString(),
+      modifiedTime: wpDate(story.updatedAt || story.publishedAt).toISOString(),
+      section: story.category,
+      authors: story.byline ? [story.byline] : undefined,
+      images: image ? [image] : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      site: "@unilagpressclub",
+      title: story.title,
+      description: story.excerpt || undefined,
+      images: image ? [image] : undefined,
     },
   };
 }

@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  getAuthorsFromBylines,
-  getStoriesByByline,
-  getAuthorStoryCountsFromBylines,
-} from "@/lib/data";
+import { getAuthorByBylineSlug } from "@/lib/data";
 import type { Author, Story } from "@/types/wp";
 
 export const revalidate = 300;
+
+export async function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({
   params,
@@ -15,11 +15,11 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const author = (await getAuthorsFromBylines()).find((a) => a.slug === slug);
+  const author = (await getAuthorByBylineSlug(slug))?.author;
   if (!author)
-    return { title: "Author not found - DAILY AKOKITE" };
+    return { title: "Author not found" };
   return {
-    title: `${author.name} - DAILY AKOKITE`,
+    title: author.name,
     description: `Articles by ${author.name} on Daily Akokite.`,
   };
 }
@@ -30,19 +30,14 @@ export default async function AuthorPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [author, counts] = await Promise.all([
-    getAuthorsFromBylines(),
-    getAuthorStoryCountsFromBylines(),
-  ]);
+  const result = await getAuthorByBylineSlug(slug);
+  if (!result) notFound();
 
-  const found = author.find((a) => a.slug === slug);
-  if (!found) notFound();
-
-  const stories = await getStoriesByByline(found.name);
-
-  const count = counts[slug] ?? stories.length;
+  const { author: found, stories } = result;
+  const count = stories.length;
 
   return (
+    <main id="main">
     <article>
       <div className="site-container py-8">
         <Link
@@ -109,6 +104,7 @@ export default async function AuthorPage({
         )}
       </section>
     </article>
+    </main>
   );
 }
 

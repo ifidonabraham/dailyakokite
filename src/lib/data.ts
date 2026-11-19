@@ -2,8 +2,14 @@ import type { WPPost, WPPage, Story, PageContent, WPAuthor, Author } from "@/typ
 
 const WP_API_URL = "https://unilagnews.com/wp-json/wp/v2";
 
+// Fields normalizeStory actually reads; keeps list payloads ~17x smaller than _embed.
+const POST_FIELDS =
+  "id,slug,title,excerpt,content,link,date,modified,categories,tags,author,format,status,author_info,featured_image_urls";
+
 async function fetchWP<T>(endpoint: string): Promise<T> {
-  const res = await fetch(`${WP_API_URL}${endpoint}`);
+  const res = await fetch(`${WP_API_URL}${endpoint}`, {
+    signal: AbortSignal.timeout(30_000),
+  });
   if (!res.ok) throw new Error(`Failed to fetch: ${endpoint}`);
   return res.json();
 }
@@ -11,11 +17,13 @@ async function fetchWP<T>(endpoint: string): Promise<T> {
 // --- Raw WordPress fetchers (CMS layer) ---
 
 export async function getRawPosts(perPage = 100): Promise<WPPost[]> {
-  return fetchWP(`/posts?_embed&per_page=${perPage}`);
+  return fetchWP(`/posts?_fields=${POST_FIELDS}&per_page=${perPage}`);
 }
 
 export async function getRawPostBySlug(slug: string): Promise<WPPost | null> {
-  const posts = await fetchWP<WPPost[]>(`/posts?_embed&slug=${encodeURIComponent(slug)}`);
+  const posts = await fetchWP<WPPost[]>(
+    `/posts?_fields=${POST_FIELDS}&slug=${encodeURIComponent(slug)}`
+  );
   return posts.length > 0 ? posts[0] : null;
 }
 
@@ -53,6 +61,7 @@ const CATEGORY_NAMES: Record<number, string> = {
   5: "Editorials",
   6: "Opinion",
   7: "Interview",
+  8: "ULSU Watch",
   18: "News Alert",
   19: "Poem",
   24: "Story",
@@ -88,16 +97,23 @@ export function normalizeStory(post: WPPost): Story {
   const primary = cats[0] || "News";
   const image = post.featured_image_urls?.full?.[0] || null;
   const byline = extractByline(post.content.rendered);
+  const title = decodeEntities(post.title.rendered);
   // Fallback: if no featured image is set, pull the first image out of the
   // article body. Many posts (especially essays) have an inline image but no
   // featured image, so the preview still shows something.
   const bodyImage = image ? null : extractFirstImage(post.content.rendered);
+  const featuredImage = image
+    ? rewriteImageUrl(image)
+    : bodyImage
+      ? rewriteImageUrl(bodyImage)
+      : null;
+  const body = rewriteContentHtml(post.content.rendered);
   return {
     id: post.id,
     slug: post.slug,
-    title: post.title.rendered,
-    excerpt: stripHtml(post.excerpt.rendered),
-    body: rewriteContentHtml(post.content.rendered),
+    title,
+    excerpt: cleanExcerpt(post.excerpt.rendered, byline),
+    body: featuredImage ? removeLeadImage(body, featuredImage) : body,
     storyType: storyTypeFor(post),
     category: primary,
     categories: cats,
@@ -108,8 +124,8 @@ export function normalizeStory(post: WPPost): Story {
     authorName: byline || post.author_info?.display_name || "Daily Akokite",
     publishedAt: post.date,
     updatedAt: post.modified,
-    featuredImage: image ? rewriteImageUrl(image) : (bodyImage ? rewriteImageUrl(bodyImage) : null),
-    featuredImageAlt: post.title.rendered,
+    featuredImage,
+    featuredImageAlt: title,
     canonicalUrl: post.link ? rewriteContentHtml(post.link) : "",
     status: post.status,
     format: post.format || "standard",
@@ -119,7 +135,7 @@ export function normalizeStory(post: WPPost): Story {
 export function normalizePage(page: WPPage): PageContent {
   return {
     slug: page.slug,
-    title: page.title.rendered,
+    title: decodeEntities(page.title.rendered),
     body: rewriteContentHtml(page.content.rendered),
     status: page.status,
   };
@@ -168,7 +184,7 @@ export async function getStoriesByCategory(
   const cat = cats.find((c) => c.slug === slug);
   if (!cat) return [];
   const posts = await fetchWP<WPPost[]>(
-    `/posts?_embed&categories=${cat.id}&per_page=${limit}`
+    `/posts?_fields=${POST_FIELDS}&categories=${cat.id}&per_page=${limit}`
   );
   return posts.map(normalizeStory);
 }
@@ -238,9 +254,9 @@ export async function getAuthorStoryCounts(): Promise<
 
 // --- Search (3-tier ranking) ---
 //
-// WordPress exposes a server-side `search` param, but it only matches titles and
-// ignores everything else. We do the ranking here so we can score title,
-// category/tags, and excerpt/body separately, with a recency boost.
+// WordPress's `search` param matches title, excerpt and content across the whole
+// archive but orders by date. We use it to find candidates, then rank them here
+// so title, category/tags and body matches score differently.
 //
 // Tiers (highest score wins):
 //   1. title   - every query token appears in the title
@@ -261,7 +277,9 @@ export async function searchStories(
     .filter((t) => t.length > 1);
   if (tokens.length === 0) return [];
 
-  const posts = await getRawPosts(100);
+  const posts = await fetchWP<WPPost[]>(
+    `/posts?_fields=${POST_FIELDS}&per_page=50&search=${encodeURIComponent(q)}`
+  );
   const now = Date.now();
   const DAY = 86400000;
 
@@ -341,6 +359,61 @@ export async function getLeadStory(): Promise<Story | null> {
 
 // --- Helpers ---
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", quot: '"', apos: "'", lt: "<", gt: ">", nbsp: " ",
+  hellip: "…", rsquo: "’", lsquo: "‘", ldquo: "“", rdquo: "”",
+  ndash: "–", mdash: "—",
+};
+
+export function decodeEntities(text: string): string {
+  if (!text) return "";
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, ent: string) => {
+    if (ent[0] === "#") {
+      const hex = ent[1].toLowerCase() === "x";
+      const code = parseInt(ent.slice(hex ? 2 : 1), hex ? 16 : 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : m;
+    }
+    return NAMED_ENTITIES[ent.toLowerCase()] ?? m;
+  });
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function cleanExcerpt(html: string, byline: string | null): string {
+  let text = decodeEntities(stripHtml(html)).replace(/\s+/g, " ").trim();
+  text = text.replace(/\s*\[(?:…|\.\.\.)\]\s*$/, "…");
+  if (byline) {
+    text = text.replace(new RegExp(`^by\\s+${escapeRegExp(byline)}\\s*`, "i"), "");
+  }
+  return text;
+}
+
+function imageKey(src: string): string {
+  return rewriteImageUrl(src)
+    .split("?")[0]
+    .replace(/-\d+x\d+(?=\.\w+$)/, "")
+    .replace(/-scaled(?=\.\w+$)/, "")
+    .toLowerCase();
+}
+
+// Drop the body's first image when it is the featured image already shown above it.
+function removeLeadImage(body: string, featured: string): string {
+  const img = body.match(/<img\b[^>]*?src=(?:["']([^"']+)["']|([^\s>]+))[^>]*>/i);
+  if (!img || img.index === undefined) return body;
+  if (imageKey(img[1] || img[2]) !== imageKey(featured)) return body;
+  const figure = /<figure\b[^>]*>[\s\S]*?<\/figure>/gi;
+  let f: RegExpExecArray | null;
+  while ((f = figure.exec(body))) {
+    if (f.index > img.index) break;
+    if (img.index < f.index + f[0].length) {
+      return body.slice(0, f.index) + body.slice(f.index + f[0].length);
+    }
+  }
+  return body.slice(0, img.index) + body.slice(img.index + img[0].length);
+}
+
 export function stripHtml(html: string): string {
   if (!html) return "";
   return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
@@ -380,7 +453,10 @@ export function rewriteContentHtml(html: string): string {
   return html
     .replace(/https?:\/\/unilagnews\.com\/wp-content\//g, "/wp-content/")
     .replace(/https?:\/\/unilagnews\.com\/\?p=\d+/g, "/")
-    .replace(/https?:\/\/unilagnews\.com\/category\/[^"'<> ]+/g, "/")
+    .replace(
+      /https?:\/\/unilagnews\.com\/category\/([^"'<>\s]+)/g,
+      (_, path: string) => `/category/${path.split("/").filter(Boolean).pop() ?? ""}`
+    )
     .replace(/https?:\/\/unilagnews\.com\/([^\s"'<>\\/]+)\/$/g, "/$1")
     .replace(/https?:\/\/unilagnews\.com\/([^\s"'<>]+)/g, "/$1")
     .replace(/https?:\/\/unilagnews\.com\//g, "/");
@@ -467,15 +543,38 @@ export async function getAuthorsFromBylines(): Promise<Author[]> {
   return Array.from(bySlug.values());
 }
 
+// Bylines live in the post body, so WP full-text search on the name finds a
+// writer's posts anywhere in the archive, not just the latest 100.
+async function searchBylinePosts(slug: string): Promise<WPPost[]> {
+  const words = slug.split("-").filter(Boolean).join(" ");
+  if (!words) return [];
+  const posts = await fetchWP<WPPost[]>(
+    `/posts?_fields=${POST_FIELDS}&per_page=100&search=${encodeURIComponent(words)}`
+  );
+  return posts.filter((p) => {
+    const b = extractByline(p.content.rendered);
+    return b !== null && toSlug(b) === slug;
+  });
+}
+
+export async function getAuthorByBylineSlug(
+  slug: string
+): Promise<{ author: Author; stories: Story[] } | null> {
+  const posts = await searchBylinePosts(slug);
+  if (posts.length === 0) return null;
+  const name = extractByline(posts[0].content.rendered) ?? slug;
+  return {
+    author: { id: 0, name, slug, bio: "", avatar: null, storyCount: posts.length },
+    stories: posts.map(normalizeStory),
+  };
+}
+
 export async function getStoriesByByline(
   byline: string,
   limit = 20
 ): Promise<Story[]> {
-  const posts = await getRawPosts(100);
-  return posts
-    .filter((p) => extractByline(p.content.rendered) === byline)
-    .slice(0, limit)
-    .map(normalizeStory);
+  const posts = await searchBylinePosts(toSlug(byline));
+  return posts.slice(0, limit).map(normalizeStory);
 }
 
 export async function getAuthorStoryCountsFromBylines(): Promise<

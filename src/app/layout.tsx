@@ -4,6 +4,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dailyakokite.vercel.app"),
+  alternates: {
+    types: { "application/rss+xml": [{ url: "/feed.xml", title: "DAILY AKOKITE" }] },
+  },
   title: {
     default: "DAILY AKOKITE - The Press Club, UNILAG",
     template: "%s | DAILY AKOKITE",

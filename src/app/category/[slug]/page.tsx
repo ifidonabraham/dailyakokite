@@ -9,6 +9,11 @@ import type { Story } from "@/types/wp";
 
 export const revalidate = 60;
 
+// Empty list = render on first request, then cache with ISR.
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -19,7 +24,7 @@ export async function generateMetadata({
   const cat = cats.find((c) => c.slug === slug);
   const name = cat?.name ?? titleCase(slug);
   return {
-    title: `${name} - DAILY AKOKITE`,
+    title: `${name}`,
     description: `All stories in the ${name} category on Daily Akokite.`,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const SECTIONS = [
@@ -22,31 +22,24 @@ const CATEGORY_LINKS = [
   { href: "/category/entertainment", label: "Entertainment" },
 ];
 
-// "uncategorized" is relabelled "News" in WP and would duplicate the real News.
-const HIDDEN_CATEGORIES = new Set(["uncategorized", "about-us"]);
-
-export default function PrimaryNavigation() {
+export default function PrimaryNavigation({
+  categories = [],
+}: {
+  categories?: { name: string; slug: string }[];
+}) {
   const [open, setOpen] = useState(false);
-  const [categories, setCategories] = useState<{ name: string; slug: string }[]>(
-    []
-  );
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    fetch("https://unilagnews.com/wp-json/wp/v2/categories?per_page=100")
-      .then((res) => res.json())
-      .then((data) => {
-        const withPosts = (data as { name: string; slug: string; count: number }[])
-          .filter((c) => c.count > 0 && !HIDDEN_CATEGORIES.has(c.slug))
-          .sort((a, b) => b.count - a.count);
-        setCategories(
-          withPosts.map(({ name, slug }) => ({ name, slug }))
-        );
-      })
-      .catch(() => setCategories([]));
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      if (wasOpen.current) triggerRef.current?.focus();
+      wasOpen.current = false;
+      return;
+    }
+    wasOpen.current = true;
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
@@ -103,6 +96,7 @@ export default function PrimaryNavigation() {
             <button
               type="button"
               className="flex items-center gap-2 px-2.5 sm:px-3 h-9 border border-black hover:bg-black hover:text-white transition-colors group"
+              ref={triggerRef}
               aria-label="Open all sections"
               aria-expanded={open}
               aria-controls="sections-drawer"
@@ -138,7 +132,7 @@ export default function PrimaryNavigation() {
         {/* Drawer: all sections (right-slide, holds every category with posts) */}
         <div
           className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
-          aria-hidden={!open}
+          inert={!open}
         >
           <div
             className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
@@ -161,6 +155,7 @@ export default function PrimaryNavigation() {
                 All Sections
               </span>
               <button
+                ref={closeRef}
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close menu"

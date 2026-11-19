@@ -17,7 +17,7 @@ export async function generateMetadata() {
     lead?.featuredImage ||
     "/wp-content/uploads/2026/11/RedElegantEventProposalPresentation_20261103_212819_0000.jpg";
   return {
-    title: "Home - DAILY AKOKITE",
+    title: { absolute: "DAILY AKOKITE - The Press Club, UNILAG" },
     description:
       "Daily Akokite — the student newspaper of the University of Lagos. News, features, opinion and campus reporting from Akoka.",
     openGraph: {

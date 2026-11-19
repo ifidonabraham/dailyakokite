@@ -125,12 +125,14 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[9px] font-sans font-bold uppercase tracking-[0.16em] text-ink/50">
-        {label}
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] font-sans font-bold uppercase tracking-[0.16em] text-ink/65">
+          {label}
+        </span>
+        {children}
       </label>
-      {children}
       {error && (
-        <p className="text-[11px] text-red-600 font-sans">{error}</p>
+        <p role="alert" className="text-[11px] text-red-700 font-sans">{error}</p>
       )}
     </div>
   );

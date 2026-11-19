@@ -8,7 +8,7 @@ export const revalidate = 300;
 
 export async function generateMetadata() {
   return {
-    title: "About - DAILY AKOKITE",
+    title: "About",
     description:
       "Daily Akokite is an editorial outlet of The Press Club, University of Lagos.",
   };

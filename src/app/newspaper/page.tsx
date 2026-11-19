@@ -5,14 +5,14 @@ import type { Story } from "@/types/wp";
 export const revalidate = 300;
 
 export async function generateMetadata() {
-  return { title: "Newspaper - DAILY AKOKITE" };
+  return { title: "Newspaper" };
 }
 
 export default async function NewspaperPage() {
   const stories = await getLatestStories(24);
 
   return (
-    <article>
+    <main id="main">
       <div className="site-container py-8">
         <h1 className="font-display text-4xl font-extrabold mb-6">Newspaper</h1>
       </div>
@@ -31,7 +31,7 @@ export default async function NewspaperPage() {
           ))}
         </div>
       </section>
-    </article>
+    </main>
   );
 }
 

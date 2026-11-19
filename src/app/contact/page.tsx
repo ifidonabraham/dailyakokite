@@ -8,7 +8,7 @@ export const revalidate = 300;
 
 export async function generateMetadata() {
   return {
-    title: "Contact - DAILY AKOKITE",
+    title: "Contact",
     description: "Get in touch with Daily Akokite and The Press Club, University of Lagos.",
   };
 }
